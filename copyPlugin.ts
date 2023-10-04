@@ -22,13 +22,14 @@ export function copyDirectoryPlugin (from: string, to: string): BunPlugin {
   return {
     name: 'copyDirectoryPlugin',
     async setup(): Promise<void> {
+      await mkdir(to, { recursive: true })
       return copyDirectory(from, to)
     }
   }
 }
 
 export async function copyFile(from: string, to: string): Promise<void> {
-  await Bun.write(resolve(to), Bun.file(resolve(from)))
+  await Bun.write(to, Bun.file(from))
 }
 
 export async function copyDirectory(from: string, to: string): Promise<void> {
