@@ -1,7 +1,7 @@
 /// <reference path="./node_modules/bun-types/types.d.ts" />
 import { BunPlugin } from 'bun';
 import { readdir, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 export function copyPlugin(from: string, to: string): BunPlugin {
   return from.endsWith('/')
@@ -28,7 +28,7 @@ export function copyDirectoryPlugin (from: string, to: string): BunPlugin {
 }
 
 export async function copyFile(from: string, to: string): Promise<void> {
-  await Bun.write(to, Bun.file(from))
+  await Bun.write(resolve(to), Bun.file(resolve(from)))
 }
 
 export async function copyDirectory(from: string, to: string): Promise<void> {

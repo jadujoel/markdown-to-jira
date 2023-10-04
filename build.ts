@@ -1,4 +1,4 @@
-import { copyDirectoryPlugin } from "./copyPlugin"
+import { copyPlugin } from "./copyPlugin"
 
 Bun.build({
   entrypoints: ['src/index.ts'],
@@ -7,7 +7,6 @@ Bun.build({
   sourcemap: 'external',
   target: 'browser',
   plugins: [
-    copyDirectoryPlugin('./public', './dist')
+    copyPlugin('static/', 'dist')
   ]
 })
-
