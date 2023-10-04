@@ -8,5 +8,5 @@ Bun.build({
   target: 'browser',
   plugins: [
     copyPlugin('static/', 'dist')
-  ]
+  ],
 })

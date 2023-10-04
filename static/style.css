@@ -5,7 +5,14 @@ html, textarea {
   margin: 0;
 }
 
+body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
 textarea {
-  height: 95vh;
-  width: 45vw;
+  padding: 0.8rem;
 }

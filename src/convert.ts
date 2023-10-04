@@ -3,8 +3,9 @@ import { Renderer, marked } from 'marked'
 export const MAX_CODE_LINE = 20 as const
 export const langMap = {
   shell: 'bash',
-  actionscript3: 'actionscript3',
   bash: 'bash',
+  zsh: 'bash',
+  actionscript3: 'actionscript3',
   csharp: 'csharp',
   coldfusion: 'coldfusion',
   cpp: 'cpp',
@@ -17,8 +18,8 @@ export const langMap = {
   javafx: 'javafx',
   js: 'javascript',
   javascript: 'javascript',
-  ts: 'javascript',
-  typescript: 'javascript',
+  ts: 'typescript',
+  typescript: 'typescript',
   perl: 'perl',
   php: 'php',
   none: 'none',
@@ -26,6 +27,7 @@ export const langMap = {
   python: 'python',
   ruby: 'ruby',
   scala: 'scala',
+  rust: 'rust',
   sql: 'sql',
   vb: 'vb',
   'html/xml': 'html/xml'
@@ -60,21 +62,20 @@ export class JiraRenderer extends Renderer {
     return '\n'
   }
   hr (): string {
-    return '\n----\n'
+    return '----\n\n'
   }
   link (href: string, _title: string, text?: string): string {
     return `[${text != null ? `${text}|${href}` : href}]`
   }
   list (body: string, ordered: boolean): string {
     const type = ordered ? '#' : '*'
-    const result = `\n${
+    const result = `${
       body.trim()
       .split('\n')
       .filter(v => v)
       .map(line => `${type} ${line}`)
       .join('\n')
     }\n\n`
-    console.log(result)
     return result
   }
   listitem (body: string): string {
@@ -105,5 +106,26 @@ export class JiraRenderer extends Renderer {
 }
 
 export function convert(markdown: string): string {
-  return marked(markdown, { renderer: new JiraRenderer() })
+  return fixCommentedCodeBlocks(marked(markdown, { renderer: new JiraRenderer() }))
+}
+
+export function fixCommentedCodeBlocks(markdown: string): string {
+  let inCodeBlock = false; // keep track if we are inside a code block
+  // split by lines and map through them to apply transformation
+  return markdown.split('\n').map(line => {
+    // check if this line is the start or end of a code block
+    if (line.includes('{code')) {
+      inCodeBlock = true;
+      return line.split('# ').join('');
+    } else if (line.includes('{code}')) {
+      inCodeBlock = false;
+      return line.split('# ').join('');
+    }
+    // if inside a code block and the line starts with a '#', remove the '#'
+    if (inCodeBlock && line.startsWith('#')) {
+      return line.slice(1);
+    } else {
+      return line;
+    }
+  }).join('\n'); // join back to get the transformed string
 }

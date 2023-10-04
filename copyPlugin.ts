@@ -1,7 +1,7 @@
 /// <reference path="./node_modules/bun-types/types.d.ts" />
 import { BunPlugin } from 'bun';
-import { readdir, mkdir } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { mkdir, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 
 export function copyPlugin(from: string, to: string): BunPlugin {
   return from.endsWith('/')
