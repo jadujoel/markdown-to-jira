@@ -1,0 +1,11 @@
+html, textarea {
+  background-color: rgba(0, 0, 0, 70%);
+  color: #fff;
+  padding: 0;
+  margin: 0;
+}
+
+textarea {
+  height: 95vh;
+  width: 45vw;
+}
