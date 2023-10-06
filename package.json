@@ -4,9 +4,10 @@
   "description": "convert markdown to jira text",
   "author": "joel.lof@icloud.com",
   "license": "MIT",
-  "dependencies": {
-    "bun-types": "1.0.3",
+  "devDependencies": {
     "marked": "9.0.3",
-    "typescript": "5.2.2"
+    "bun-copy-plugin": "0.1.0",
+    "bun-serve": "0.0.2",
+    "bun-types": "1.0.3"
   }
 }
