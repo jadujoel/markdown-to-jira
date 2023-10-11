@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <title>Markdown to Jira</title>
-  <script src="index.js" defer></script>
-</head>
-<body>
-  <textarea id="input">Paste Markdown Here...</textarea>
-  <textarea id="output">Get JIRA output text here...</textarea>
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="style.css">
+        <title>Markdown to Jira</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+        <script src="index.js" defer></script>
+    </head>
+    <body>
+        <section id="input_section">
+            <!-- <button id="show_input">Show Input</button> -->
+            <textarea id="input">Paste Markdown Here...</textarea>
+        </section>
+        <section id="output_section">
+            <!-- <button id="show_output">Show Output</button> -->
+            <textarea id="output">Get JIRA output text here...</textarea>
+        </section>
+        <section id="display_section">
+            <!-- <button id="show_preview">Show Preview</button> -->
+            <div id="preview"></div>
+        </section>
+    </body>
 </html>

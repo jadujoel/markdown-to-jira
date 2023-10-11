@@ -1,4 +1,5 @@
 import { Renderer, marked } from 'marked'
+import hljs from 'highlight.js';
 
 export const MAX_CODE_LINE = 20 as const
 export const langMap = {
@@ -128,4 +129,22 @@ export function fixCommentedCodeBlocks(markdown: string): string {
       return line;
     }
   }).join('\n'); // join back to get the transformed string
+}
+
+
+class HTMLRenderer extends Renderer {
+  code(code: string, language: string) {
+    const validLanguage = hljs.getLanguage(language) ? language : 'plaintext';
+    return `<pre><code class="hljs ${language}">${hljs.highlight(code, { language: validLanguage }).value}</code></pre>`;
+  }
+}
+
+export function html (markdown: string): string {
+  return marked(markdown, {
+    renderer: new HTMLRenderer(),
+    pedantic: false,
+    gfm: true,
+    breaks: false,
+
+  });
 }

@@ -1,5 +1,6 @@
-html, textarea {
-  background-color: rgba(0, 0, 0, 70%);
+html, textarea, div {
+  /* background-color: rgb(34, 39, 46); */
+  background-color: #303030;
   color: #fff;
   padding: 0;
   margin: 0;
@@ -7,12 +8,34 @@ html, textarea {
 
 body {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   height: 100vh;
   padding: 0;
   margin: 0;
 }
 
-textarea {
+section {
+  height: 100vh;
+  overflow-y: scroll;
+  /* display: flex; */
+}
+
+textarea, div {
+  height: 100vh;
   padding: 0.8rem;
+  border: solid black 2px;
+  max-width: 33vw;
+  width: 33vw;
+  overflow-y: scroll;
+}
+
+button {
+  width: 100%;
+  background-color: #404040;
+  padding: 4em;
+}
+
+*:focus {
+  outline: none;
+  border: solid white 2px;
 }
