@@ -4,6 +4,11 @@ html, textarea, div {
   color: #fff;
   padding: 0;
   margin: 0;
+  scroll-snap-type: y mandatory;
+}
+
+h1, h2, h3, h4, hr {
+  scroll-snap-align: start;
 }
 
 body {
@@ -12,21 +17,26 @@ body {
   height: 100vh;
   padding: 0;
   margin: 0;
+  overflow-x: hidden;
 }
 
 section {
   height: 100vh;
   overflow-y: scroll;
+  width: 100%;
+
   /* display: flex; */
 }
 
 textarea, div {
-  height: 100vh;
+  height: 94%;
   padding: 0.8rem;
   border: solid black 2px;
-  max-width: 33vw;
-  width: 33vw;
+  width: 90%;
+  padding: 4%;
+  /* max-width: 100%; */
   overflow-y: scroll;
+  overflow-x: hidden;
 }
 
 button {
