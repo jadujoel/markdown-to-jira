@@ -74,8 +74,9 @@ export class JiraRenderer extends Renderer {
       body.trim()
       .split('\n')
       .filter(v => v)
-      .map(line => `${type} ${line}`)
-      .join('\n')
+      .map(line => `\n${type} ${line}`)
+      .join('')
+      .replaceAll("* *", "**")
     }\n\n`
     return result
   }
