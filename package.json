@@ -1,16 +1,19 @@
 {
   "name": "markdown-to-jira",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "convert markdown to jira text",
   "author": "joel.lof@icloud.com",
   "license": "MIT",
   "devDependencies": {
     "marked": "9.1.0",
-    "bun-copy-plugin": "0.1.0",
-    "bun-serve": "0.0.2",
-    "bun-types": "1.0.3",
+    "bun-types": "1.2.11",
     "highlight.js": "11.9.0"
   },
-  "dependencies": {
+  "dependencies": {},
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

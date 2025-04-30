@@ -1,6 +1,11 @@
 import { Renderer, marked } from 'marked'
 import hljs from 'highlight.js';
 
+let dbg = (...args: unknown[]) => {}
+export function verbose() {
+  dbg = console.log
+}
+
 export const MAX_CODE_LINE = 20 as const
 export const langMap = {
   shell: 'bash',
@@ -34,29 +39,38 @@ export const langMap = {
   'html/xml': 'html/xml'
 } as const
 
+
 export class JiraRenderer extends Renderer {
   paragraph (text: string): string {
+    dbg(`Paragraph: ${text}`)
     return text + '\n\n'
   }
   html (input: string): string {
+    dbg(`HTML: ${input}`)
     return input
   }
   heading (text: string, level: number): string {
+    dbg(`Heading: ${text}`)
     return `h${level}. ${text}\n\n`
   }
   strong (text: string): string {
+    dbg(`Strong: ${text}`)
     return `*${text}*`
   }
   em (text: string): string {
+    dbg(`Em: ${text}`)
     return `_${text}_`
   }
   del (text: string): string {
+    dbg(`Del: ${text}`)
     return `-${text}-`
   }
   codespan (text: string): string {
+    dbg(`Codespan: ${text}`)
     return `{{${text}}}`
   }
   blockquote (quote: string): string {
+    dbg(`Blockquote: ${quote}`)
     return `{quote}${quote}{quote}`
   }
   br (): string {
@@ -100,6 +114,7 @@ export class JiraRenderer extends Renderer {
     return `{code:language=${langMap[lang] ?? ''}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${code.split('\n').length > MAX_CODE_LINE}}\n${code}\n{code}\n\n`
   }
   text(text: string): string {
+    dbg(`Text: ${text}`)
     return text
   }
   checkbox(checked: boolean): string {
@@ -146,6 +161,5 @@ export function html (markdown: string): string {
     pedantic: false,
     gfm: true,
     breaks: false,
-
   });
 }
