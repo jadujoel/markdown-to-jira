@@ -1,4 +1,4 @@
-import { Renderer, marked } from 'marked'
+import { Renderer, marked, type Tokens } from 'marked'
 import hljs from 'highlight.js';
 
 let dbg = (...args: unknown[]) => {}
@@ -7,7 +7,7 @@ export function verbose() {
 }
 
 export const MAX_CODE_LINE = 20 as const
-export const langMap = {
+export const LANGS = {
   shell: 'bash',
   bash: 'bash',
   zsh: 'bash',
@@ -41,37 +41,37 @@ export const langMap = {
 
 
 export class JiraRenderer extends Renderer {
-  paragraph (text: string): string {
-    dbg(`Paragraph: ${text}`)
+  paragraph ({ tokens, raw, text }: Tokens.Paragraph): string {
+    dbg(`Paragraph: ${tokens}`, tokens)
     return text + '\n\n'
   }
-  html (input: string): string {
-    dbg(`HTML: ${input}`)
-    return input
+  html ({ text }: Tokens.HTML): string {
+    dbg(`HTML: ${text}`)
+    return text
   }
-  heading (text: string, level: number): string {
+  heading ({ text, depth }: Tokens.Heading): string {
     dbg(`Heading: ${text}`)
-    return `h${level}. ${text}\n\n`
+    return `h${depth}. ${text}\n\n`
   }
-  strong (text: string): string {
+  strong ({ text }: Tokens.Strong): string {
     dbg(`Strong: ${text}`)
     return `*${text}*`
   }
-  em (text: string): string {
+  em ({ text }: Tokens.Em): string {
     dbg(`Em: ${text}`)
     return `_${text}_`
   }
-  del (text: string): string {
+  del ({ text }: Tokens.Del): string {
     dbg(`Del: ${text}`)
     return `-${text}-`
   }
-  codespan (text: string): string {
+  codespan ({ text }: Tokens.Codespan): string {
     dbg(`Codespan: ${text}`)
     return `{{${text}}}`
   }
-  blockquote (quote: string): string {
-    dbg(`Blockquote: ${quote}`)
-    return `{quote}${quote}{quote}`
+  blockquote ({ text }: Tokens.Blockquote): string {
+    dbg(`Blockquote: ${text}`)
+    return `{quote}${text}{quote}`
   }
   br (): string {
     return '\n'
@@ -79,13 +79,13 @@ export class JiraRenderer extends Renderer {
   hr (): string {
     return '----\n\n'
   }
-  link (href: string, _title: string, text?: string): string {
+  link ({ href, text }: Tokens.Link): string {
     return `[${text != null ? `${text}|${href}` : href}]`
   }
-  list (body: string, ordered: boolean): string {
+  list ({ raw, ordered }: Tokens.List): string {
     const type = ordered ? '#' : '*'
     const result = `${
-      body.trim()
+      raw.trim()
       .split('\n')
       .filter(v => v)
       .map(line => `\n${type} ${line}`)
@@ -94,36 +94,37 @@ export class JiraRenderer extends Renderer {
     }\n\n`
     return result
   }
-  listitem (body: string): string {
-    return `${body}\n`
+  listitem ({ text }: Tokens.ListItem): string {
+    return `${text}\n`
   }
-  image (href: string): string {
+  image ({ href }: Tokens.Image): string {
     return `!${href}!`
   }
-  table (header: string, body: string) {
-    return header + body + '\n'
+  table ({ header, raw }: Tokens.Table) {
+    return header + raw + '\n'
   }
-  tablerow (content: string): string {
-    return content + '\n'
+  tablerow ({ text }: Tokens.TableRow): string {
+    return text + '\n'
   }
-  tablecell (content: string, flags: { readonly header: boolean; readonly align: "center" | "left" | "right" | null }): string {
-    const type = flags.header ? '||' : '|'
-    return type + content
+  tablecell ({ header, text }: Tokens.TableCell): string {
+    const type = header ? '||' : '|'
+    return type + text
   }
-  code (code: string, lang: keyof typeof langMap): string {
-    return `{code:language=${langMap[lang] ?? ''}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${code.split('\n').length > MAX_CODE_LINE}}\n${code}\n{code}\n\n`
+  code ({ text, lang }: Tokens.Code): string {
+    return `{code:language=${(LANGS as any)[lang ?? ""] ?? ''}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split('\n').length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`
   }
-  text(text: string): string {
+  text({ text }: Tokens.Text): string {
     dbg(`Text: ${text}`)
     return text
   }
-  checkbox(checked: boolean): string {
+  checkbox({ checked }: Tokens.Checkbox): string {
     return checked ? '[x]' : '[-]'
   }
 }
 
 export function convert(markdown: string): string {
-  return fixCommentedCodeBlocks(marked(markdown, { renderer: new JiraRenderer() }))
+  const result = <string> marked(markdown, { renderer: new JiraRenderer(), async: false })
+  return fixCommentedCodeBlocks(result)
 }
 
 export function fixCommentedCodeBlocks(markdown: string): string {
@@ -147,11 +148,20 @@ export function fixCommentedCodeBlocks(markdown: string): string {
   }).join('\n'); // join back to get the transformed string
 }
 
+function validLanguage(language?: string): string {
+  if (language === undefined) {
+    return "plaintext"
+  }
+  if (hljs.getLanguage(language) === undefined) {
+    return "plaintext"
+  }
+  return language
+}
 
 class HTMLRenderer extends Renderer {
-  code(code: string, language: string) {
-    const validLanguage = hljs.getLanguage(language) ? language : 'plaintext';
-    return `<pre><code class="hljs ${language}">${hljs.highlight(code, { language: validLanguage }).value}</code></pre>`;
+  code({ text, lang, escaped }: Tokens.Code): string {
+    const language = validLanguage(lang)
+    return `<pre><code class="hljs ${language}">${hljs.highlight(text, { language }).value}</code></pre>`;
   }
 }
 
@@ -161,5 +171,6 @@ export function html (markdown: string): string {
     pedantic: false,
     gfm: true,
     breaks: false,
+    async: false,
   });
 }
