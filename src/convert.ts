@@ -123,28 +123,77 @@ export class JiraRenderer extends Renderer {
 }
 
 export function convert(markdown: string): string {
-  return fixCommentedCodeBlocks(marked(markdown, { renderer: new JiraRenderer() }))
+  let currentString = marked(markdown, { renderer: new JiraRenderer() });
+  currentString = fixCommentedCodeBlocks(currentString);
+  currentString = fixDoubleUnderscore(currentString);
+
+  return currentString;
 }
 
-export function fixCommentedCodeBlocks(markdown: string): string {
+/**
+ * Processes a markdown string line by line, applying different transformations
+ * based on whether the line is inside or outside a code block.
+ *
+ * @param markdown The input markdown string.
+ * @param onCodeStartLine A lambda function to apply to lines that starts the code block
+ * @param onCodeBlockLine A lambda function to apply to lines within a code block.
+ * @param onCodeEndLine A lambda function to apply to lines that ends the code block
+ * @param onNonCodeBlockLine A lambda function to apply to lines outside a code block
+ * @returns The transformed markdown string.
+ */
+export function processCodeBlockLines(
+    markdown: string,
+    onCodeStartLine: (line: string) => string, // {code:
+    onCodeBlockLine: (line: string) => string, // let inCode = true;
+    onCodeEndLine: (line: string) => string,   // {code}
+    onNonCodeBlockLine: (line: string) => string, // Out of the code block!
+): string {
   let inCodeBlock = false; // keep track if we are inside a code block
   // split by lines and map through them to apply transformation
   return markdown.split('\n').map(line => {
     // check if this line is the start or end of a code block
-    if (line.includes('{code')) {
-      inCodeBlock = true;
-      return line.split('# ').join('');
-    } else if (line.includes('{code}')) {
+    // Check '{code}' first since '{code' is a subset of it.
+    if (line.includes('{code}')) {
       inCodeBlock = false;
-      return line.split('# ').join('');
+      return onCodeEndLine(line);
+    } else if (line.includes('{code')) {
+      inCodeBlock = true;
+      return onCodeStartLine(line);
     }
-    // if inside a code block and the line starts with a '#', remove the '#'
-    if (inCodeBlock && line.startsWith('#')) {
-      return line.slice(1);
+
+    if (inCodeBlock) {
+      return onCodeBlockLine(line);
     } else {
-      return line;
+      return onNonCodeBlockLine(line);
     }
   }).join('\n'); // join back to get the transformed string
+}
+
+export function fixCommentedCodeBlocks(markdown: string): string {
+  return processCodeBlockLines(
+      markdown,
+      line => line.split('# ').join(''), // start of code
+      line => line.startsWith('#') ? line.slice(1) : line, // if inside a code block and the line starts with a '#', remove the '#'
+      line => line.split('# ').join(''), // end of code
+      line => line, // out of code, do nothing
+  );
+}
+
+/**
+ * Post processor to fix one__two three__four causing italics to 'three four' in jira.
+ *
+ * If not in a code block, replace __ with \_\_
+ * __bold__ will have been converted to *bold* already, so we can escape any remaining __
+ * @param markdown to post process __'s
+ */
+export function fixDoubleUnderscore(markdown: string) {
+  return processCodeBlockLines(
+      markdown,
+      s=> s, // start code
+      s=> s, // in code
+      s=> s, // end of code
+      s=> s.replaceAll('__', '\\_\\_'), // replace __ with \_\_ when out of code
+  );
 }
 
 
