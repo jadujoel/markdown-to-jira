@@ -39,6 +39,99 @@ export const langMap = {
   'html/xml': 'html/xml'
 } as const
 
+/**
+ * Convert HTML tags to Jira wiki markup
+ */
+function convertHtmlToJira(html: string): string {
+  let converted = html;
+  
+  // Line breaks
+  converted = converted.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Bold tags
+  converted = converted.replace(/<(strong|b)>/gi, '*');
+  converted = converted.replace(/<\/(strong|b)>/gi, '*');
+  
+  // Italic tags
+  converted = converted.replace(/<(em|i)>/gi, '_');
+  converted = converted.replace(/<\/(em|i)>/gi, '_');
+  
+  // Underline tags
+  converted = converted.replace(/<u>/gi, '+');
+  converted = converted.replace(/<\/u>/gi, '+');
+  
+  // Strikethrough tags
+  converted = converted.replace(/<(s|strike|del)>/gi, '-');
+  converted = converted.replace(/<\/(s|strike|del)>/gi, '-');
+  
+  // Code tags (inline)
+  converted = converted.replace(/<code>/gi, '{{');
+  converted = converted.replace(/<\/code>/gi, '}}');
+  
+  // Preformatted text
+  converted = converted.replace(/<pre>/gi, '{noformat}');
+  converted = converted.replace(/<\/pre>/gi, '{noformat}');
+  
+  // Blockquote
+  converted = converted.replace(/<blockquote>/gi, '{quote}');
+  converted = converted.replace(/<\/blockquote>/gi, '{quote}');
+  
+  // Headings
+  converted = converted.replace(/<h([1-6])>/gi, (match, level) => `h${level}. `);
+  converted = converted.replace(/<\/h[1-6]>/gi, '\n\n');
+  
+  // Paragraphs
+  converted = converted.replace(/<p>/gi, '');
+  converted = converted.replace(/<\/p>/gi, '\n\n');
+  
+  // Links
+  converted = converted.replace(/<a\s+href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '[$2|$1]');
+  converted = converted.replace(/<a\s+href="([^"]*)"[^>]*><\/a>/gi, '[$1]');
+  
+  // Images
+  converted = converted.replace(/<img\s+src="([^"]*)"[^>]*>/gi, '!$1!');
+  
+  // Lists - this is more complex, handle basic cases
+  converted = converted.replace(/<ul>/gi, '');
+  converted = converted.replace(/<\/ul>/gi, '\n');
+  converted = converted.replace(/<ol>/gi, '');
+  converted = converted.replace(/<\/ol>/gi, '\n');
+  converted = converted.replace(/<li>/gi, '* ');
+  converted = converted.replace(/<\/li>/gi, '\n');
+  
+  // Tables - basic support
+  converted = converted.replace(/<table[^>]*>/gi, '');
+  converted = converted.replace(/<\/table>/gi, '\n');
+  converted = converted.replace(/<tr[^>]*>/gi, '');
+  converted = converted.replace(/<\/tr>/gi, '|\n');
+  converted = converted.replace(/<th[^>]*>/gi, '||');
+  converted = converted.replace(/<\/th>/gi, '');
+  converted = converted.replace(/<td[^>]*>/gi, '|');
+  converted = converted.replace(/<\/td>/gi, '');
+  converted = converted.replace(/<tbody[^>]*>/gi, '');
+  converted = converted.replace(/<\/tbody>/gi, '');
+  converted = converted.replace(/<thead[^>]*>/gi, '');
+  converted = converted.replace(/<\/thead>/gi, '');
+  
+  // Horizontal rule
+  converted = converted.replace(/<hr\s*\/?>/gi, '----\n');
+  
+  // Div tags - just remove them but keep content
+  converted = converted.replace(/<div[^>]*>/gi, '');
+  converted = converted.replace(/<\/div>/gi, '\n');
+  
+  // Span tags - remove but keep content
+  converted = converted.replace(/<span[^>]*>/gi, '');
+  converted = converted.replace(/<\/span>/gi, '');
+  
+  // Clean up any remaining HTML tags (strip them)
+  converted = converted.replace(/<[^>]*>/g, '');
+  
+  // Clean up excessive newlines
+  converted = converted.replace(/\n{3,}/g, '\n\n');
+  
+  return converted;
+}
 
 export class JiraRenderer extends Renderer {
   paragraph (text: string): string {
@@ -47,7 +140,7 @@ export class JiraRenderer extends Renderer {
   }
   html (input: string): string {
     dbg(`HTML: ${input}`)
-    return input
+    return convertHtmlToJira(input)
   }
   heading (text: string, level: number): string {
     dbg(`Heading: ${text}`)
@@ -115,7 +208,7 @@ export class JiraRenderer extends Renderer {
   }
   text(text: string): string {
     dbg(`Text: ${text}`)
-    return text
+    return convertHtmlToJira(text)
   }
   checkbox(checked: boolean): string {
     return checked ? '[x]' : '[-]'
@@ -123,11 +216,39 @@ export class JiraRenderer extends Renderer {
 }
 
 export function convert(markdown: string): string {
-  let currentString = marked(markdown, { renderer: new JiraRenderer() });
+  let currentString = marked(markdown, { 
+    renderer: new JiraRenderer(),
+    gfm: true, // GitHub Flavored Markdown
+    breaks: true // Convert line breaks to <br>
+  });
+  
   currentString = fixCommentedCodeBlocks(currentString);
   currentString = fixDoubleUnderscore(currentString);
+  currentString = postProcessHtmlConversion(currentString);
 
   return currentString;
+}
+
+/**
+ * Additional post-processing for HTML conversion edge cases
+ */
+function postProcessHtmlConversion(text: string): string {
+  let processed = text;
+  
+  // Fix any remaining HTML entities
+  processed = processed.replace(/&lt;/g, '<');
+  processed = processed.replace(/&gt;/g, '>');
+  processed = processed.replace(/&amp;/g, '&');
+  processed = processed.replace(/&quot;/g, '"');
+  processed = processed.replace(/&#39;/g, "'");
+  processed = processed.replace(/&nbsp;/g, ' ');
+  
+  // Clean up excessive whitespace
+  processed = processed.replace(/[ \t]+/g, ' ');
+  processed = processed.replace(/\n[ \t]+/g, '\n');
+  processed = processed.replace(/[ \t]+\n/g, '\n');
+  
+  return processed;
 }
 
 /**
