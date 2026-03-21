@@ -1,165 +1,167 @@
-import { Renderer, marked, type Tokens } from 'marked'
-import hljs from 'highlight.js';
+import hljs from "highlight.js";
+import { marked, Renderer, type Tokens } from "marked";
 
-let dbg = (...args: unknown[]) => {}
+let dbg = (...args: unknown[]) => {};
 export function verbose() {
-  dbg = console.log
+	dbg = console.log;
 }
 
-export const MAX_CODE_LINE = 20 as const
+export const MAX_CODE_LINE = 20 as const;
 export const LANGS = {
-  shell: 'bash',
-  bash: 'bash',
-  zsh: 'bash',
-  actionscript3: 'actionscript3',
-  csharp: 'csharp',
-  coldfusion: 'coldfusion',
-  cpp: 'cpp',
-  css: 'css',
-  delphi: 'delphi',
-  diff: 'diff',
-  erlang: 'erlang',
-  groovy: 'groovy',
-  java: 'java',
-  javafx: 'javafx',
-  js: 'javascript',
-  javascript: 'javascript',
-  ts: 'typescript',
-  typescript: 'typescript',
-  perl: 'perl',
-  php: 'php',
-  none: 'none',
-  powershell: 'powershell',
-  python: 'python',
-  ruby: 'ruby',
-  scala: 'scala',
-  rust: 'rust',
-  sql: 'sql',
-  vb: 'vb',
-  'html/xml': 'html/xml'
-} as const
+	shell: "bash",
+	bash: "bash",
+	zsh: "bash",
+	actionscript3: "actionscript3",
+	csharp: "csharp",
+	coldfusion: "coldfusion",
+	cpp: "cpp",
+	css: "css",
+	delphi: "delphi",
+	diff: "diff",
+	erlang: "erlang",
+	groovy: "groovy",
+	java: "java",
+	javafx: "javafx",
+	js: "javascript",
+	javascript: "javascript",
+	ts: "typescript",
+	typescript: "typescript",
+	perl: "perl",
+	php: "php",
+	none: "none",
+	powershell: "powershell",
+	python: "python",
+	ruby: "ruby",
+	scala: "scala",
+	rust: "rust",
+	sql: "sql",
+	vb: "vb",
+	"html/xml": "html/xml",
+} as const;
 
 export class JiraRenderer extends Renderer {
-  private _listDepth: string[] = []
+	private _listDepth: string[] = [];
 
-  paragraph ({ tokens }: Tokens.Paragraph): string {
-    const body = this.parser.parseInline(tokens)
-    dbg(`Paragraph`, body)
-    return body + '\n\n'
-  }
-  html ({ text }: Tokens.HTML): string {
-    dbg(`HTML: ${text}`)
-    return text
-  }
-  heading ({ tokens, depth }: Tokens.Heading): string {
-    const body = this.parser.parseInline(tokens)
-    dbg(`Heading: ${body}`)
-    return `h${depth}. ${body}\n\n`
-  }
-  strong ({ tokens }: Tokens.Strong): string {
-    const body = this.parser.parseInline(tokens)
-    dbg(`Strong: ${body}`)
-    return `*${body}*`
-  }
-  em ({ tokens }: Tokens.Em): string {
-    const body = this.parser.parseInline(tokens)
-    dbg(`Em: ${body}`)
-    return `_${body}_`
-  }
-  del ({ tokens }: Tokens.Del): string {
-    const body = this.parser.parseInline(tokens)
-    dbg(`Del: ${body}`)
-    return `-${body}-`
-  }
-  codespan ({ text }: Tokens.Codespan): string {
-    dbg(`Codespan: ${text}`)
-    return `{{${text}}}`
-  }
-  blockquote ({ tokens }: Tokens.Blockquote): string {
-    const body = this.parser.parse(tokens)
-    dbg(`Blockquote: ${body}`)
-    return `{quote}${body}{quote}`
-  }
-  br (): string {
-    return '\n'
-  }
-  hr (): string {
-    return '----\n\n'
-  }
-  link ({ href, tokens }: Tokens.Link): string {
-    const body = this.parser.parseInline(tokens)
-    return `[${body != null ? `${body}|${href}` : href}]`
-  }
-  list (token: Tokens.List): string {
-    const type = token.ordered ? '#' : '*'
-    this._listDepth.push(type)
-    let body = ''
-    for (const item of token.items) {
-      body += this.listitem(item)
-    }
-    this._listDepth.pop()
-    // Only add trailing newline for top-level lists
-    return this._listDepth.length === 0 ? body + '\n' : body
-  }
-  listitem (item: Tokens.ListItem): string {
-    const prefix = this._listDepth.join('')
-    let itemText = ''
-    // Render tokens, separating nested lists from inline content
-    for (const token of item.tokens) {
-      if (token.type === 'list') {
-        itemText = itemText.trimEnd() + '\n' + this.parser.parse([token])
-      } else {
-        itemText += this.parser.parse([token])
-      }
-    }
-    return `${prefix} ${itemText.trim()}\n`
-  }
-  image ({ href }: Tokens.Image): string {
-    return `!${href}!`
-  }
-  table (token: Tokens.Table): string {
-    let result = ''
-    // header
-    let headerRow = ''
-    for (const cell of token.header) {
-      headerRow += '||' + this.parser.parseInline(cell.tokens)
-    }
-    result += headerRow + '||\n'
-    // rows
-    for (const row of token.rows) {
-      let rowStr = ''
-      for (const cell of row) {
-        rowStr += '|' + this.parser.parseInline(cell.tokens)
-      }
-      result += rowStr + '|\n'
-    }
-    return result + '\n'
-  }
-  tablerow ({ text }: Tokens.TableRow): string {
-    return text + '\n'
-  }
-  tablecell ({ header, tokens }: Tokens.TableCell): string {
-    const type = header ? '||' : '|'
-    return type + this.parser.parseInline(tokens)
-  }
-  code ({ text, lang }: Tokens.Code): string {
-    return `{code:language=${(LANGS as any)[lang ?? ""] ?? ''}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split('\n').length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`
-  }
-  text(token: Tokens.Text): string {
-    if ('tokens' in token && token.tokens) {
-      return this.parser.parseInline(token.tokens)
-    }
-    dbg(`Text: ${token.text}`)
-    return token.text
-  }
-  checkbox({ checked }: Tokens.Checkbox): string {
-    return checked ? '[x] ' : '[-] '
-  }
+	paragraph({ tokens }: Tokens.Paragraph): string {
+		const body = this.parser.parseInline(tokens);
+		dbg(`Paragraph`, body);
+		return body + "\n\n";
+	}
+	html({ text }: Tokens.HTML): string {
+		dbg(`HTML: ${text}`);
+		return text;
+	}
+	heading({ tokens, depth }: Tokens.Heading): string {
+		const body = this.parser.parseInline(tokens);
+		dbg(`Heading: ${body}`);
+		return `h${depth}. ${body}\n\n`;
+	}
+	strong({ tokens }: Tokens.Strong): string {
+		const body = this.parser.parseInline(tokens);
+		dbg(`Strong: ${body}`);
+		return `*${body}*`;
+	}
+	em({ tokens }: Tokens.Em): string {
+		const body = this.parser.parseInline(tokens);
+		dbg(`Em: ${body}`);
+		return `_${body}_`;
+	}
+	del({ tokens }: Tokens.Del): string {
+		const body = this.parser.parseInline(tokens);
+		dbg(`Del: ${body}`);
+		return `-${body}-`;
+	}
+	codespan({ text }: Tokens.Codespan): string {
+		dbg(`Codespan: ${text}`);
+		return `{{${text}}}`;
+	}
+	blockquote({ tokens }: Tokens.Blockquote): string {
+		const body = this.parser.parse(tokens);
+		dbg(`Blockquote: ${body}`);
+		return `{quote}${body}{quote}`;
+	}
+	br(): string {
+		return "\n";
+	}
+	hr(): string {
+		return "----\n\n";
+	}
+	link({ href, tokens }: Tokens.Link): string {
+		const body = this.parser.parseInline(tokens);
+		return `[${body != null ? `${body}|${href}` : href}]`;
+	}
+	list(token: Tokens.List): string {
+		const type = token.ordered ? "#" : "*";
+		this._listDepth.push(type);
+		let body = "";
+		for (const item of token.items) {
+			body += this.listitem(item);
+		}
+		this._listDepth.pop();
+		// Only add trailing newline for top-level lists
+		return this._listDepth.length === 0 ? body + "\n" : body;
+	}
+	listitem(item: Tokens.ListItem): string {
+		const prefix = this._listDepth.join("");
+		let itemText = "";
+		// Render tokens, separating nested lists from inline content
+		for (const token of item.tokens) {
+			if (token.type === "list") {
+				itemText = itemText.trimEnd() + "\n" + this.parser.parse([token]);
+			} else {
+				itemText += this.parser.parse([token]);
+			}
+		}
+		return `${prefix} ${itemText.trim()}\n`;
+	}
+	image({ href }: Tokens.Image): string {
+		return `!${href}!`;
+	}
+	table(token: Tokens.Table): string {
+		let result = "";
+		// header
+		let headerRow = "";
+		for (const cell of token.header) {
+			headerRow += "||" + this.parser.parseInline(cell.tokens);
+		}
+		result += headerRow + "||\n";
+		// rows
+		for (const row of token.rows) {
+			let rowStr = "";
+			for (const cell of row) {
+				rowStr += "|" + this.parser.parseInline(cell.tokens);
+			}
+			result += rowStr + "|\n";
+		}
+		return result + "\n";
+	}
+	tablerow({ text }: Tokens.TableRow): string {
+		return text + "\n";
+	}
+	tablecell({ header, tokens }: Tokens.TableCell): string {
+		const type = header ? "||" : "|";
+		return type + this.parser.parseInline(tokens);
+	}
+	code({ text, lang }: Tokens.Code): string {
+		return `{code:language=${(LANGS as any)[lang ?? ""] ?? ""}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split("\n").length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`;
+	}
+	text(token: Tokens.Text): string {
+		if ("tokens" in token && token.tokens) {
+			return this.parser.parseInline(token.tokens);
+		}
+		dbg(`Text: ${token.text}`);
+		return token.text;
+	}
+	checkbox({ checked }: Tokens.Checkbox): string {
+		return checked ? "[x] " : "[-] ";
+	}
 }
 
 export function convert(markdown: string): string {
-  const result = <string> marked(markdown, { renderer: new JiraRenderer(), async: false })
-  return fixDoubleUnderscore(fixCommentedCodeBlocks(result))
+	const result = <string>(
+		marked(markdown, { renderer: new JiraRenderer(), async: false })
+	);
+	return fixDoubleUnderscore(fixCommentedCodeBlocks(result));
 }
 
 /**
@@ -174,41 +176,44 @@ export function convert(markdown: string): string {
  * @returns The transformed markdown string.
  */
 export function processCodeBlockLines(
-    markdown: string,
-    onCodeStartLine: (line: string) => string, // {code:
-    onCodeBlockLine: (line: string) => string, // let inCode = true;
-    onCodeEndLine: (line: string) => string,   // {code}
-    onNonCodeBlockLine: (line: string) => string, // Out of the code block!
+	markdown: string,
+	onCodeStartLine: (line: string) => string, // {code:
+	onCodeBlockLine: (line: string) => string, // let inCode = true;
+	onCodeEndLine: (line: string) => string, // {code}
+	onNonCodeBlockLine: (line: string) => string, // Out of the code block!
 ): string {
-  let inCodeBlock = false; // keep track if we are inside a code block
-  // split by lines and map through them to apply transformation
-  return markdown.split('\n').map(line => {
-    // check if this line is the start or end of a code block
-    // Check '{code}' first since '{code' is a subset of it.
-    if (line.includes('{code}')) {
-      inCodeBlock = false;
-      return onCodeEndLine(line);
-    } else if (line.includes('{code')) {
-      inCodeBlock = true;
-      return onCodeStartLine(line);
-    }
+	let inCodeBlock = false; // keep track if we are inside a code block
+	// split by lines and map through them to apply transformation
+	return markdown
+		.split("\n")
+		.map((line) => {
+			// check if this line is the start or end of a code block
+			// Check '{code}' first since '{code' is a subset of it.
+			if (line.includes("{code}")) {
+				inCodeBlock = false;
+				return onCodeEndLine(line);
+			} else if (line.includes("{code")) {
+				inCodeBlock = true;
+				return onCodeStartLine(line);
+			}
 
-    if (inCodeBlock) {
-      return onCodeBlockLine(line);
-    } else {
-      return onNonCodeBlockLine(line);
-    }
-  }).join('\n'); // join back to get the transformed string
+			if (inCodeBlock) {
+				return onCodeBlockLine(line);
+			} else {
+				return onNonCodeBlockLine(line);
+			}
+		})
+		.join("\n"); // join back to get the transformed string
 }
 
 export function fixCommentedCodeBlocks(markdown: string): string {
-  return processCodeBlockLines(
-      markdown,
-      line => line.split('# ').join(''), // start of code
-      line => line.startsWith('#') ? line.slice(1) : line, // if inside a code block and the line starts with a '#', remove the '#'
-      line => line.split('# ').join(''), // end of code
-      line => line, // out of code, do nothing
-  );
+	return processCodeBlockLines(
+		markdown,
+		(line) => line.split("# ").join(""), // start of code
+		(line) => (line.startsWith("#") ? line.slice(1) : line), // if inside a code block and the line starts with a '#', remove the '#'
+		(line) => line.split("# ").join(""), // end of code
+		(line) => line, // out of code, do nothing
+	);
 }
 
 /**
@@ -219,38 +224,38 @@ export function fixCommentedCodeBlocks(markdown: string): string {
  * @param markdown to post process __'s
  */
 export function fixDoubleUnderscore(markdown: string) {
-  return processCodeBlockLines(
-      markdown,
-      s=> s, // start code
-      s=> s, // in code
-      s=> s, // end of code
-      s=> s.replaceAll('__', '\\_\\_'), // replace __ with \_ when out of code
-  );
+	return processCodeBlockLines(
+		markdown,
+		(s) => s, // start code
+		(s) => s, // in code
+		(s) => s, // end of code
+		(s) => s.replaceAll("__", "\\_\\_"), // replace __ with \_ when out of code
+	);
 }
 
 function validLanguage(language?: string): string {
-  if (language === undefined) {
-    return "plaintext"
-  }
-  if (hljs.getLanguage(language) === undefined) {
-    return "plaintext"
-  }
-  return language
+	if (language === undefined) {
+		return "plaintext";
+	}
+	if (hljs.getLanguage(language) === undefined) {
+		return "plaintext";
+	}
+	return language;
 }
 
 class HTMLRenderer extends Renderer {
-  code({ text, lang, escaped }: Tokens.Code): string {
-    const language = validLanguage(lang)
-    return `<pre><code class="hljs ${language}">${hljs.highlight(text, { language }).value}</code></pre>`;
-  }
+	code({ text, lang, escaped }: Tokens.Code): string {
+		const language = validLanguage(lang);
+		return `<pre><code class="hljs ${language}">${hljs.highlight(text, { language }).value}</code></pre>`;
+	}
 }
 
-export function html (markdown: string): string {
-  return marked(markdown, {
-    renderer: new HTMLRenderer(),
-    pedantic: false,
-    gfm: true,
-    breaks: false,
-    async: false,
-  });
+export function html(markdown: string): string {
+	return marked(markdown, {
+		renderer: new HTMLRenderer(),
+		pedantic: false,
+		gfm: true,
+		breaks: false,
+		async: false,
+	});
 }

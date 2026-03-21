@@ -168,7 +168,7 @@ If the environment variables are not set, the E2E suite is skipped automatically
 | `~~deleted~~` | `<del>` or `<s>` |
 | Full document (`test/text.md`) | Multiple structural tags |
 
-> **Note:** Inline code and italic conversion have known issues tracked as `.todo` tests.
+
 
 ## Contributing
 
@@ -186,11 +186,7 @@ If the environment variables are not set, the E2E suite is skipped automatically
    ```
 7. Open a pull request with a clear description of the change.
 
-### Known Issues / Good First Contributions
 
-- `*italic*` in Markdown is converted to `*italic*` in Jira (bold) instead of `_italic_`.
-- Inline `` `code` `` is not converted to Jira `{{code}}` in all edge cases.
-- These are tracked as `.todo` tests in the E2E suite — fixing them and making the tests pass is a great first contribution.
 
 ## Tech Stack
 
