@@ -4,6 +4,7 @@ import home from "./src/index.html";
 export async function serve() {
 	await build();
 	const server = Bun.serve({
+		development: true,
 		routes: {
 			"/": home,
 			"/icon-192.svg": new Response(Bun.file("src/icon-192.svg")),
@@ -13,8 +14,7 @@ export async function serve() {
 			}),
 		},
 		fetch(request) {
-			const url = request.url;
-			console.log("RUL", url);
+			console.log("404", new URL(request.url).pathname);
 			return new Response(null, { status: 404 });
 		},
 	});

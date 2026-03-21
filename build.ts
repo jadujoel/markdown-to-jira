@@ -13,9 +13,9 @@ export async function build() {
 			.filter((o) => o.path.endsWith(".svg"))
 			.map((o) => {
 				const hashed = o.path.split("/").pop();
-        if (hashed === undefined) {
-          throw new Error("Missing Hash")
-        }
+				if (hashed === undefined) {
+					throw new Error("Missing Hash");
+				}
 				const original = hashed.replace(/-[a-z0-9]+\.svg$/, ".svg");
 				return [original, hashed] as const;
 			}),
@@ -35,8 +35,8 @@ export async function build() {
 	for (const file of glob.scanSync("dist")) {
 		const manifest = await Bun.file(`dist/${file}`).json();
 		for (const icon of manifest.icons) {
-			const hashed = svgMap.get(icon.src);
-			if (hashed) icon.src = hashed;
+			const hashed = svgMap.get(icon.src.replace(/^\//, ""));
+			if (hashed) icon.src = `/${hashed}`;
 		}
 		await Bun.write(`dist/${file}`, JSON.stringify(manifest));
 	}
