@@ -5,11 +5,18 @@
   "author": "joel.lof@icloud.com",
   "license": "MIT",
   "devDependencies": {
-    "marked": "9.1.0",
+    "marked": "17.0.5",
     "bun-types": "1.2.11",
     "highlight.js": "11.9.0"
   },
+  "scripts": {
+    "test": "bun test src/convert.test.ts",
+    "test:e2e": "bun test src/convert.e2e.test.ts"
+  },
   "dependencies": {},
+  "optionalDependencies": {
+    "@biomejs/biome": "2.4.8"
+  },
   "module": "src/index.ts",
   "type": "module",
   "private": true,

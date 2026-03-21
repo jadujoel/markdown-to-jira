@@ -1,0 +1,22 @@
+{
+  "name": "Markdown to Jira",
+  "short_name": "MD to Jira",
+  "description": "Convert Markdown to Jira wiki markup",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#171717",
+  "theme_color": "#171717",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
