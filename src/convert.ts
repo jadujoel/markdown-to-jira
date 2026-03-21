@@ -121,7 +121,7 @@ export class JiraRenderer extends Renderer {
 	blockquote({ tokens }: Tokens.Blockquote): string {
 		const body = this.parser.parse(tokens);
 		dbg(`Blockquote: ${body}`);
-		return `{quote}${body}{quote}`;
+		return `{quote}${body}{quote}\n`;
 	}
 	br(): string {
 		return "\n";
