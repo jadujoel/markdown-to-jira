@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { convert } from "./convert.ts";
+import { convert, correctMarkdown } from "./convert.ts";
 
 const JIRA_BASE_URL = process.env.JIRA_BASE_URL;
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
@@ -439,9 +439,7 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 
 	it("table renders with header and data cells", async () => {
 		currentTestName = "table with header and data";
-		const html = await render(
-			"| Name | Age |\n| --- | --- |\n| Alice | 30 |",
-		);
+		const html = await render("| Name | Age |\n| --- | --- |\n| Alice | 30 |");
 		expect(html).toMatch(/<t(h|d)[^>]*>/);
 		expect(html).toMatch(/Alice/);
 	});
@@ -537,7 +535,8 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 
 	it("bash comments in code blocks are preserved", async () => {
 		currentTestName = "bash comments in code blocks";
-		const md = "```bash\n# Install dependencies\nbun install\n# Start the server\nbun serve\n```";
+		const md =
+			"```bash\n# Install dependencies\nbun install\n# Start the server\nbun serve\n```";
 		const html = await render(md);
 		expect(html).toMatch(/<pre[^>]*>/);
 		expect(html).toMatch(/Install dependencies/);
@@ -726,12 +725,82 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 
 	it("paragraph with all inline styles renders correctly", async () => {
 		currentTestName = "paragraph all inline styles";
-		const md = "This has **bold**, *italic*, ~~strike~~, `code`, and [link](https://example.com).";
+		const md =
+			"This has **bold**, *italic*, ~~strike~~, `code`, and [link](https://example.com).";
 		const html = await render(md);
 		expect(html).toMatch(/<(strong|b)[^>]*>/);
 		expect(html).toMatch(/<(em|i)[^>]*>/);
-		expect(html).toMatch(/<(del|s|span[^>]*text-decoration:\s*line-through)[^>]*>/);
+		expect(html).toMatch(
+			/<(del|s|span[^>]*text-decoration:\s*line-through)[^>]*>/,
+		);
 		expect(html).toMatch(/<(code|tt)[^>]*>/);
 		expect(html).toMatch(/<a[^>]*href/);
+	});
+
+	// ─── Complex Fixture E2E Tests ──────────────────────────────────
+
+	it("complex-document.md converts and renders all structural elements", async () => {
+		currentTestName = "complex document fixture";
+		const md = await readFile("test/complex-document.md", "utf8");
+		const html = await render(md);
+		expect(html.length).toBeGreaterThan(500);
+		expect(html).toMatch(/<h1[^>]*>/);
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/<h3[^>]*>/);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/<t(h|d)[^>]*>/);
+		expect(html).toMatch(/<hr[^>]*\/?>/);
+		expect(html).toMatch(/<a[^>]*href/);
+	});
+
+	it("complex-release-notes.md converts and renders all structural elements", async () => {
+		currentTestName = "complex release notes fixture";
+		const md = await readFile("test/complex-release-notes.md", "utf8");
+		const html = await render(md);
+		expect(html.length).toBeGreaterThan(500);
+		expect(html).toMatch(/<h1[^>]*>/);
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/<h3[^>]*>/);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/<t(h|d)[^>]*>/);
+	});
+
+	it("error-laden.md converts without crashing", async () => {
+		currentTestName = "error-laden fixture raw";
+		const md = await readFile("test/error-laden.md", "utf8");
+		const html = await render(md);
+		expect(html.length).toBeGreaterThan(100);
+	});
+
+	it("error-laden.md with correction converts and produces better output", async () => {
+		currentTestName = "error-laden fixture corrected";
+		const md = await readFile("test/error-laden.md", "utf8");
+		const corrected = correctMarkdown(md);
+		const jira = convert(corrected);
+		const html = await renderViaJiraComment(issueKey, jira);
+		await saveResult(currentTestName, corrected, jira, html);
+		expect(html.length).toBeGreaterThan(100);
+		// Corrected version should produce headings
+		expect(html).toMatch(/<h[1-6][^>]*>/);
+	});
+
+	it("missing-newlines.md converts without crashing", async () => {
+		currentTestName = "missing-newlines fixture raw";
+		const md = await readFile("test/missing-newlines.md", "utf8");
+		const html = await render(md);
+		expect(html.length).toBeGreaterThan(50);
+	});
+
+	it("missing-newlines.md with correction produces improved output", async () => {
+		currentTestName = "missing-newlines fixture corrected";
+		const md = await readFile("test/missing-newlines.md", "utf8");
+		const corrected = correctMarkdown(md);
+		const jira = convert(corrected);
+		const html = await renderViaJiraComment(issueKey, jira);
+		await saveResult(currentTestName, corrected, jira, html);
+		expect(html.length).toBeGreaterThan(50);
+		expect(html).toMatch(/<h[1-6][^>]*>/);
 	});
 });

@@ -129,6 +129,13 @@ html, body {
   transform: scale(0.92);
 }
 
+/* ── Error Correction Toggle ── */
+.btn-correct.active {
+  color: var(--accent);
+  background: rgba(163, 230, 53, 0.15);
+  border-color: var(--accent);
+}
+
 .btn-icon svg {
   display: block;
 }

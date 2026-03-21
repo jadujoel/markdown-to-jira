@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { Parser } from "marked";
 import {
 	convert,
+	correctMarkdown,
 	fixCommentedCodeBlocks,
 	fixDoubleUnderscore,
 	html,
@@ -634,5 +635,234 @@ describe("JiraRenderer direct method calls", () => {
 			tokens: [{ type: "text", raw: "Data", text: "Data" }],
 		} as any);
 		expect(result).toEqual("|Data");
+	});
+});
+
+// ─── correctMarkdown ────────────────────────────────────────────────
+
+describe("correctMarkdown", () => {
+	it("adds space after # in headings", () => {
+		expect(correctMarkdown("##Heading")).toBe("## Heading");
+	});
+
+	it("adds space after ### with no space", () => {
+		expect(correctMarkdown("###Also missing")).toBe("### Also missing");
+	});
+
+	it("does not alter headings that already have space", () => {
+		expect(correctMarkdown("## Good Heading")).toBe("## Good Heading");
+	});
+
+	it("adds space after - in list items", () => {
+		expect(correctMarkdown("-Item")).toBe("- Item");
+	});
+
+	it("adds space after nested - in list items", () => {
+		expect(correctMarkdown("  -Nested")).toBe("  - Nested");
+	});
+
+	it("adds space after ordered list marker", () => {
+		expect(correctMarkdown("1.Item one")).toBe("1. Item one");
+	});
+
+	it("adds space after > in blockquote", () => {
+		expect(correctMarkdown(">Quote text")).toBe("> Quote text");
+	});
+
+	it("inserts blank line before heading when missing", () => {
+		const input = "Some text\n## Heading";
+		const output = correctMarkdown(input);
+		expect(output).toContain("Some text\n\n## Heading");
+	});
+
+	it("inserts blank line before list when previous line is not a list", () => {
+		const input = "Some text\n- item";
+		const output = correctMarkdown(input);
+		expect(output).toContain("Some text\n\n- item");
+	});
+
+	it("does not insert blank line between consecutive list items", () => {
+		const input = "- item one\n- item two";
+		const output = correctMarkdown(input);
+		expect(output).toBe("- item one\n- item two");
+	});
+
+	it("inserts blank line before blockquote when missing", () => {
+		const input = "Some text\n> quote";
+		const output = correctMarkdown(input);
+		expect(output).toContain("Some text\n\n> quote");
+	});
+
+	it("inserts blank line before code fence when missing", () => {
+		const input = "Some text\n```\ncode\n```";
+		const output = correctMarkdown(input);
+		expect(output).toContain("Some text\n\n```");
+	});
+
+	it("collapses 3+ blank lines to 2", () => {
+		const input = "A\n\n\n\n\nB";
+		const output = correctMarkdown(input);
+		expect(output).toBe("A\n\n\nB");
+	});
+
+	it("does not modify content inside fenced code blocks", () => {
+		const input = "```\n##Not a heading\n-Not a list\n```";
+		const output = correctMarkdown(input);
+		expect(output).toContain("##Not a heading");
+		expect(output).toContain("-Not a list");
+	});
+
+	it("trims leading blank lines", () => {
+		const input = "\n\n\n# Heading";
+		const output = correctMarkdown(input);
+		expect(output).toBe("# Heading");
+	});
+
+	it("handles missing newlines between mixed elements", () => {
+		const input = "# Title\n- item\nText\n## H2\n> Quote";
+		const output = correctMarkdown(input);
+		expect(output).toContain("# Title\n\n- item");
+		expect(output).toContain("Text\n\n## H2");
+		expect(output).toContain("## H2\n\n> Quote");
+	});
+});
+
+// ─── convert with error correction ──────────────────────────────────
+
+describe("convert with error correction", () => {
+	it("converts heading with missing space when correction enabled", () => {
+		const result = convert("##Heading", true).trim();
+		expect(result).toBe("h2. Heading");
+	});
+
+	it("converts list with missing space when correction enabled", () => {
+		const result = convert("-Item one\n-Item two", true).trim();
+		expect(result).toContain("* Item one");
+		expect(result).toContain("* Item two");
+	});
+
+	it("does not correct when flag is false", () => {
+		// ##NoSpace won't parse as heading without correction
+		const result = convert("##NoSpace", false).trim();
+		// Without correction, ## is not treated as heading by marked (it needs space)
+		expect(result).not.toContain("h2.");
+	});
+});
+
+// ─── Complex fixture tests ──────────────────────────────────────────
+
+describe("complex-document.md fixture", () => {
+	const md = require("fs").readFileSync("test/complex-document.md", "utf8");
+
+	it("does not throw", () => {
+		expect(() => convert(md)).not.toThrow();
+	});
+
+	it("contains heading markers", () => {
+		const result = convert(md);
+		expect(result).toContain("h1.");
+		expect(result).toContain("h2.");
+		expect(result).toContain("h3.");
+	});
+
+	it("contains code blocks", () => {
+		const result = convert(md);
+		expect(result).toContain("{code:");
+		expect(result).toContain("{code}");
+	});
+
+	it("contains tables", () => {
+		const result = convert(md);
+		expect(result).toContain("||");
+	});
+
+	it("contains lists", () => {
+		const result = convert(md);
+		expect(result).toMatch(/^\* /m);
+		expect(result).toMatch(/^# /m);
+	});
+
+	it("html rendering does not throw", () => {
+		expect(() => html(md)).not.toThrow();
+	});
+});
+
+describe("complex-release-notes.md fixture", () => {
+	const md = require("fs").readFileSync(
+		"test/complex-release-notes.md",
+		"utf8",
+	);
+
+	it("does not throw", () => {
+		expect(() => convert(md)).not.toThrow();
+	});
+
+	it("contains emoji text", () => {
+		const result = convert(md);
+		expect(result).toMatch(/🚀|🐛|⚠️|📦|🔧/);
+	});
+
+	it("contains checkboxes", () => {
+		const result = convert(md);
+		expect(result).toMatch(/\[x\]|\[-\]/);
+	});
+
+	it("contains diff code block", () => {
+		const result = convert(md);
+		expect(result).toContain("{code:");
+	});
+});
+
+describe("error-laden.md fixture", () => {
+	const md = require("fs").readFileSync("test/error-laden.md", "utf8");
+
+	it("does not throw without correction", () => {
+		expect(() => convert(md)).not.toThrow();
+	});
+
+	it("does not throw with correction", () => {
+		expect(() => convert(md, true)).not.toThrow();
+	});
+
+	it("correction produces heading markers from broken headings", () => {
+		const result = convert(md, true);
+		expect(result).toContain("h2.");
+		expect(result).toContain("h3.");
+	});
+
+	it("correction produces list markers from broken lists", () => {
+		const result = convert(md, true);
+		expect(result).toMatch(/^\* /m);
+	});
+
+	it("html rendering does not throw", () => {
+		expect(() => html(md)).not.toThrow();
+	});
+
+	it("html rendering with correction does not throw", () => {
+		const corrected = correctMarkdown(md);
+		expect(() => html(corrected)).not.toThrow();
+	});
+});
+
+describe("missing-newlines.md fixture", () => {
+	const md = require("fs").readFileSync("test/missing-newlines.md", "utf8");
+
+	it("does not throw without correction", () => {
+		expect(() => convert(md)).not.toThrow();
+	});
+
+	it("does not throw with correction", () => {
+		expect(() => convert(md, true)).not.toThrow();
+	});
+
+	it("correction improves heading detection", () => {
+		const withoutCorrection = convert(md);
+		const withCorrection = convert(md, true);
+		// Corrected version should have more h-markers because broken headings get fixed
+		const countH = (s: string) => (s.match(/^h\d\./gm) || []).length;
+		expect(countH(withCorrection)).toBeGreaterThanOrEqual(
+			countH(withoutCorrection),
+		);
 	});
 });

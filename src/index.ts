@@ -1,4 +1,4 @@
-import { convert, html } from "./convert";
+import { convert, correctMarkdown, html } from "./convert";
 
 declare const document: {
 	getElementById(id: string): {
@@ -16,6 +16,7 @@ declare const document: {
 		getAttribute(name: string): string | null;
 		closest(selector: string): any;
 		textContent: string;
+		title: string;
 		parentNode: { insertBefore(newNode: any, refNode: any): void };
 		nextSibling: any;
 		remove(): void;
@@ -49,11 +50,35 @@ declare const localStorage: {
 const input = document.getElementById("input");
 const output = document.getElementById("output");
 const preview = document.getElementById("preview");
+const correctBtn = document.getElementById("btn-correct");
 
-input.addEventListener("input", () => {
-	output.value = convert(input.value);
-	preview.innerHTML = html(input.value);
+let errorCorrectionEnabled = localStorage.getItem("errorCorrection") === "true";
+
+function updateCorrectBtnState() {
+	correctBtn.classList.toggle("active", errorCorrectionEnabled);
+	correctBtn.title = errorCorrectionEnabled
+		? "Error correction ON — click to disable"
+		: "Error correction OFF — click to enable";
+}
+
+function runConversion() {
+	const src = errorCorrectionEnabled
+		? correctMarkdown(input.value)
+		: input.value;
+	output.value = convert(src);
+	preview.innerHTML = html(src);
+}
+
+input.addEventListener("input", runConversion);
+
+correctBtn.addEventListener("click", () => {
+	errorCorrectionEnabled = !errorCorrectionEnabled;
+	localStorage.setItem("errorCorrection", String(errorCorrectionEnabled));
+	updateCorrectBtnState();
+	runConversion();
 });
+
+updateCorrectBtnState();
 window.convert = convert;
 
 const ICON_MAXIMIZE =

@@ -203,9 +203,107 @@ export class JiraRenderer extends Renderer {
 	}
 }
 
-export function convert(markdown: string): string {
+/**
+ * Pre-processes markdown source to fix common authoring errors,
+ * making the subsequent markdown → Jira conversion more robust.
+ *
+ * Fixes applied (only outside fenced code blocks):
+ * - Missing space after `#` in headings (`##Heading` → `## Heading`)
+ * - Missing space after list markers (`-item` → `- item`, `1.item` → `1. item`)
+ * - Missing blank line before headings, lists, blockquotes, code fences, and HRs
+ * - Collapse 3+ consecutive blank lines to 2
+ * - Missing space after `>` in blockquotes
+ */
+export function correctMarkdown(markdown: string): string {
+	const lines = markdown.split("\n");
+	const result: string[] = [];
+	let inFencedCode = false;
+
+	for (let i = 0; i < lines.length; i++) {
+		const rawLine = lines[i];
+		if (rawLine === undefined) continue;
+		let line = rawLine;
+
+		// Track fenced code blocks (``` or ~~~) — don't modify inside them
+		if (/^(\s*)(```|~~~)/.test(line)) {
+			if (!inFencedCode) {
+				inFencedCode = true;
+				// Ensure blank line before code fence
+				const prev = result[result.length - 1];
+				if (result.length > 0 && prev !== undefined && prev.trim() !== "") {
+					result.push("");
+				}
+				result.push(line);
+				continue;
+			} else {
+				inFencedCode = false;
+				result.push(line);
+				continue;
+			}
+		}
+
+		if (inFencedCode) {
+			result.push(line);
+			continue;
+		}
+
+		// Fix: missing space after # in headings (e.g. ##Heading → ## Heading)
+		// Only match lines that start with 1-6 # followed by a non-space, non-# char
+		line = line.replace(/^(#{1,6})([^\s#])/, "$1 $2");
+
+		// Fix: missing space after unordered list marker (e.g. -item → - item)
+		// Only at start of line with optional leading whitespace
+		line = line.replace(/^(\s*)([-*+])([^\s\-*+])/, "$1$2 $3");
+
+		// Fix: missing space after ordered list marker (e.g. 1.item → 1. item)
+		line = line.replace(/^(\s*)(\d+\.)([^\s])/, "$1$2 $3");
+
+		// Fix: missing space after > in blockquotes
+		line = line.replace(/^(\s*)(>)([^\s>])/, "$1$2 $3");
+
+		// Determine if this line needs a blank line before it
+		const prevLine = result.length > 0 ? (result[result.length - 1] ?? "") : "";
+		const prevIsBlank = prevLine.trim() === "";
+
+		if (!prevIsBlank && result.length > 0) {
+			const isHeading = /^#{1,6}\s/.test(line);
+			const isListStart =
+				/^\s*[-*+]\s/.test(line) && !/^\s*[-*+]\s/.test(prevLine);
+			const isOrderedListStart =
+				/^\s*\d+\.\s/.test(line) && !/^\s*\d+\.\s/.test(prevLine);
+			const isBlockquote = /^\s*>\s/.test(line) && !/^\s*>\s/.test(prevLine);
+			const isHr = /^\s*([-*_]){3,}\s*$/.test(line);
+			const isCodeFence = /^\s*(```|~~~)/.test(line);
+
+			if (
+				isHeading ||
+				isListStart ||
+				isOrderedListStart ||
+				isBlockquote ||
+				isHr ||
+				isCodeFence
+			) {
+				result.push("");
+			}
+		}
+
+		result.push(line);
+	}
+
+	// Collapse 3+ consecutive blank lines to 2
+	let output = result.join("\n");
+	output = output.replace(/\n{4,}/g, "\n\n\n");
+
+	// Trim leading blank lines
+	output = output.replace(/^\n+/, "");
+
+	return output;
+}
+
+export function convert(markdown: string, correct = false): string {
+	const source = correct ? correctMarkdown(markdown) : markdown;
 	const result = <string>(
-		marked(markdown, { renderer: new JiraRenderer(), async: false })
+		marked(source, { renderer: new JiraRenderer(), async: false })
 	);
 	return fixDoubleUnderscore(fixCommentedCodeBlocks(result));
 }
