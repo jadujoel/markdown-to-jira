@@ -1,9 +1,10 @@
 import { describe, it, expect } from "bun:test"
-import { convert, verbose, html, fixCommentedCodeBlocks, JiraRenderer } from "./convert.ts"
+import { convert, verbose, html, fixCommentedCodeBlocks, fixDoubleUnderscore, JiraRenderer } from "./convert.ts"
 import { Parser } from "marked"
 
 /** Helper: convert and trim trailing whitespace */
 const c = (md: string) => convert(md).trim()
+
 
 // ─── Basic Inline Formatting ────────────────────────────────────────
 
@@ -14,8 +15,8 @@ describe("bold", () => {
   it("__underscores__", () => {
     expect(c("__bold__")).toEqual("*bold*")
   })
-  it("mid-word double underscore stays literal", () => {
-    expect(c("my__bold__key my__bold__key")).toEqual("my__bold__key my__bold__key")
+  it("mid-word double underscore is escaped", () => {
+    expect(c("my__bold__key my__bold__key")).toEqual("my\\_\\_bold\\_\\_key my\\_\\_bold\\_\\_key")
   })
 })
 
