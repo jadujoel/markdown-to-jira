@@ -532,4 +532,206 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 		);
 		expect(html).toMatch(/<a[^>]*href/);
 	});
+
+	// ─── Complex Markdown E2E Tests ─────────────────────────────────
+
+	it("bash comments in code blocks are preserved", async () => {
+		currentTestName = "bash comments in code blocks";
+		const md = "```bash\n# Install dependencies\nbun install\n# Start the server\nbun serve\n```";
+		const html = await render(md);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/Install dependencies/);
+		expect(html).toMatch(/Start the server/);
+		expect(html).toMatch(/bun install/);
+	});
+
+	it("ordered list with embedded code block renders list markers and code", async () => {
+		currentTestName = "ordered list with code block";
+		const md = [
+			"1. First step",
+			"2. Run this:",
+			"   ```bash",
+			"   bun test",
+			"   ```",
+			"3. Final step",
+		].join("\n");
+		const html = await render(md);
+		expect(html).toMatch(/<ol[^>]*>/);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/First step/);
+		expect(html).toMatch(/Final step/);
+		expect(html).toMatch(/<pre[^>]*>/);
+	});
+
+	it("multiple code blocks with different languages render", async () => {
+		currentTestName = "multiple code blocks different langs";
+		const md = [
+			"## TypeScript",
+			"",
+			"```typescript",
+			"const x: number = 1;",
+			"```",
+			"",
+			"## Python",
+			"",
+			"```python",
+			"x = 1",
+			"```",
+		].join("\n");
+		const html = await render(md);
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/<pre[^>]*>/);
+	});
+
+	it("table with inline code in cells renders correctly", async () => {
+		currentTestName = "table with inline code cells";
+		const md = [
+			"| Export | Description |",
+			"| --- | --- |",
+			"| `convert(md)` | Converts markdown |",
+			"| `html(md)` | Converts to HTML |",
+		].join("\n");
+		const html = await render(md);
+		expect(html).toMatch(/<t(h|d)[^>]*>/);
+		expect(html).toMatch(/convert/);
+		expect(html).toMatch(/Description/);
+	});
+
+	it("blockquote with bold and italic renders all formatting", async () => {
+		currentTestName = "blockquote bold italic";
+		const md = "> **Important**: This is a _critical_ note with `code`.";
+		const html = await render(md);
+		expect(html).toMatch(/Important/);
+		expect(html).toMatch(/critical/);
+	});
+
+	it("nested lists with formatting render correctly", async () => {
+		currentTestName = "nested list with formatting";
+		const md = [
+			"- **Bold item** with `code`",
+			"  - _Italic child_",
+			"  - [Link child](https://example.com)",
+			"- ~~Deleted item~~",
+		].join("\n");
+		const html = await render(md);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/<(strong|b)[^>]*>/);
+	});
+
+	it("complex README-like document renders all structural elements", async () => {
+		currentTestName = "complex README document";
+		const md = [
+			"# My Project",
+			"",
+			"A **bold** description with `inline code` and a [link](https://example.com).",
+			"",
+			"## Getting Started",
+			"",
+			"```bash",
+			"# Install dependencies",
+			"npm install",
+			"",
+			"# Start the dev server",
+			"npm run dev",
+			"```",
+			"",
+			"## Features",
+			"",
+			"- **Feature one** with `code`",
+			"- _Feature two_ with [docs](https://example.com)",
+			"  - Nested detail",
+			"- ~~Deprecated feature~~",
+			"",
+			"| Feature | Status |",
+			"| --- | --- |",
+			"| Auth | Done |",
+			"| API | WIP |",
+			"",
+			"> **Note:** This is an important notice.",
+			"",
+			"---",
+			"",
+			"1. Clone the repo",
+			"2. Install deps:",
+			"   ```bash",
+			"   npm install",
+			"   ```",
+			"3. Open a PR",
+			"",
+			"### API Reference",
+			"",
+			"```typescript",
+			"function convert(md: string): string {",
+			"  return transformed;",
+			"}",
+			"```",
+			"",
+			"Final paragraph with **bold**, *italic*, ~~strike~~, and `code`.",
+		].join("\n");
+		const html = await render(md);
+		// Structural elements
+		expect(html).toMatch(/<h1[^>]*>/);
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/<h3[^>]*>/);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/<t(h|d)[^>]*>/);
+		expect(html).toMatch(/<hr[^>]*\/?>/);
+		expect(html).toMatch(/<a[^>]*href/);
+		// Content
+		expect(html).toMatch(/My Project/);
+		expect(html).toMatch(/Install dependencies/);
+		expect(html).toMatch(/Feature one/);
+		expect(html).toMatch(/Auth/);
+		expect(html).toMatch(/important notice/);
+		expect(html).toMatch(/Clone the repo/);
+		expect(html).toMatch(/Open a PR/);
+		expect(html).toMatch(/convert/);
+	});
+
+	it("heading with all inline formatting types", async () => {
+		currentTestName = "heading with mixed formatting";
+		const html = await render("## **Bold** and _italic_ and `code` heading");
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/Bold/);
+		expect(html).toMatch(/italic/);
+	});
+
+	it("deeply nested ordered and unordered lists", async () => {
+		currentTestName = "deeply nested mixed lists";
+		const md = [
+			"1. Top level",
+			"   - Bullet child",
+			"     - Deep bullet",
+			"   - Another bullet",
+			"2. Second ordered",
+			"   1. Nested ordered",
+			"   2. Another nested",
+		].join("\n");
+		const html = await render(md);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/Top level/);
+		expect(html).toMatch(/Deep bullet/);
+		expect(html).toMatch(/Second ordered/);
+	});
+
+	it("code block with long content collapses", async () => {
+		currentTestName = "long code block collapses";
+		const lines = Array.from({ length: 25 }, (_, i) => `line ${i + 1}`);
+		const md = "```\n" + lines.join("\n") + "\n```";
+		const html = await render(md);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/line 1/);
+	});
+
+	it("paragraph with all inline styles renders correctly", async () => {
+		currentTestName = "paragraph all inline styles";
+		const md = "This has **bold**, *italic*, ~~strike~~, `code`, and [link](https://example.com).";
+		const html = await render(md);
+		expect(html).toMatch(/<(strong|b)[^>]*>/);
+		expect(html).toMatch(/<(em|i)[^>]*>/);
+		expect(html).toMatch(/<(del|s|span[^>]*text-decoration:\s*line-through)[^>]*>/);
+		expect(html).toMatch(/<(code|tt)[^>]*>/);
+		expect(html).toMatch(/<a[^>]*href/);
+	});
 });

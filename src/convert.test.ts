@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { Parser } from "marked";
 import {
 	convert,
@@ -331,6 +331,179 @@ describe("complex documents", () => {
 	});
 });
 
+// ─── Code Blocks in Lists ──────────────────────────────────────────
+
+describe("code blocks inside list items", () => {
+	it("ordered list item with code block", () => {
+		const md = "1. Run this:\n   ```bash\n   bun test\n   ```\n2. Done";
+		const result = c(md);
+		expect(result).toContain("# Run this:");
+		expect(result).toContain("{code:language=bash");
+		expect(result).toContain("bun test");
+		expect(result).toContain("{code}");
+		expect(result).toContain("# Done");
+	});
+
+	it("preserves bash comments in code blocks", () => {
+		const md =
+			"```bash\n# Install dependencies\nbun install\n# Start server\nbun serve\n```";
+		const result = c(md);
+		expect(result).toContain("# Install dependencies");
+		expect(result).toContain("# Start server");
+	});
+
+	it("multiple ordered items with code blocks preserve list markers", () => {
+		const md = [
+			"1. First step",
+			"2. Run tests:",
+			"   ```bash",
+			"   bun test",
+			"   ```",
+			"3. Deploy:",
+			"   ```bash",
+			"   bun deploy",
+			"   ```",
+			"4. Final step",
+		].join("\n");
+		const result = c(md);
+		expect(result).toContain("# First step");
+		expect(result).toContain("# Run tests:");
+		expect(result).toContain("# Deploy:");
+		expect(result).toContain("# Final step");
+	});
+
+	it("unordered list item with code block", () => {
+		const md = "- Run this:\n  ```js\n  console.log(1)\n  ```\n- Done";
+		const result = c(md);
+		expect(result).toContain("* Run this:");
+		expect(result).toContain("{code:language=javascript");
+		expect(result).toContain("* Done");
+	});
+
+	it("inline code containing 'code' word not treated as code block", () => {
+		const md = "- Use `code` blocks\n- And `{code}` markers";
+		const result = c(md);
+		expect(result).toContain("* Use {{code}} blocks");
+		expect(result).toContain("* And {{{code}}} markers");
+	});
+});
+
+// ─── Complex Real-World Document ────────────────────────────────────
+
+describe("complex real-world patterns", () => {
+	it("README-like document with mixed features", () => {
+		const md = [
+			"# My Project",
+			"",
+			"A **bold** description with `inline code`.",
+			"",
+			"## Getting Started",
+			"",
+			"```bash",
+			"# Install dependencies",
+			"npm install",
+			"```",
+			"",
+			"## Features",
+			"",
+			"- **Bold item** with `code`",
+			"- _Italic item_ with [link](https://example.com)",
+			"  - Nested child",
+			"- ~~Deleted item~~",
+			"",
+			"| Feature | Status |",
+			"| --- | --- |",
+			"| Auth | Done |",
+			"| API | WIP |",
+			"",
+			"> **Note:** Important info.",
+			"",
+			"---",
+			"",
+			"1. First",
+			"2. Second",
+			"   1. Sub-item",
+		].join("\n");
+		const result = c(md);
+		expect(result).toContain("h1. My Project");
+		expect(result).toContain("*bold*");
+		expect(result).toContain("{{inline code}}");
+		expect(result).toContain("# Install dependencies");
+		expect(result).toContain("* *Bold item* with {{code}}");
+		expect(result).toContain("** Nested child");
+		expect(result).toContain("[link|https://example.com]");
+		expect(result).toContain("-Deleted item-");
+		expect(result).toContain("||Feature||Status||");
+		expect(result).toContain("|Auth|Done|");
+		expect(result).toContain("{quote}");
+		expect(result).toContain("----");
+		expect(result).toContain("# First");
+		expect(result).toContain("## Sub-item");
+	});
+
+	it("table with inline code and links in cells", () => {
+		const md = [
+			"| Export | Description |",
+			"| --- | --- |",
+			"| `convert(md)` | Convert Markdown |",
+			"| `html(md)` | Convert to HTML |",
+		].join("\n");
+		const result = c(md);
+		expect(result).toContain("||Export||Description||");
+		expect(result).toContain("|{{convert(md)}}|Convert Markdown|");
+		expect(result).toContain("|{{html(md)}}|Convert to HTML|");
+	});
+
+	it("link inside table cell", () => {
+		const md =
+			"| Name | Link |\n| --- | --- |\n| Docs | [here](https://docs.com) |";
+		const result = c(md);
+		expect(result).toContain("[here|https://docs.com]");
+	});
+
+	it("consecutive code blocks with different languages", () => {
+		const md = "```typescript\nconst x = 1;\n```\n\n```python\nx = 1\n```";
+		const result = c(md);
+		expect(result).toContain("{code:language=typescript");
+		expect(result).toContain("const x = 1;");
+		expect(result).toContain("{code:language=python");
+		expect(result).toContain("x = 1");
+	});
+
+	it("blockquote with multiple paragraphs and formatting", () => {
+		const md =
+			"> **Important**: This is a _critical_ note.\n> \n> Second paragraph with `code`.";
+		const result = c(md);
+		expect(result).toContain("{quote}");
+		expect(result).toContain("*Important*");
+		expect(result).toContain("_critical_");
+		expect(result).toContain("{{code}}");
+	});
+
+	it("heading followed immediately by code block", () => {
+		const md = "## Setup\n\n```bash\nnpm install\n```";
+		const result = c(md);
+		expect(result).toContain("h2. Setup");
+		expect(result).toContain("{code:language=bash");
+		expect(result).toContain("npm install");
+	});
+
+	it("nested lists 3 levels with mixed types", () => {
+		const md = [
+			"1. Top ordered",
+			"   - Bullet child",
+			"     - Deep bullet",
+			"   - Another bullet",
+			"2. Second ordered",
+		].join("\n");
+		const result = c(md);
+		expect(result).toContain("# Top ordered");
+		expect(result).toContain("#* Bullet child");
+		expect(result).toContain("#** Deep bullet");
+		expect(result).toContain("# Second ordered");
+	});
+});
+
 // ─── Edge Cases ─────────────────────────────────────────────────────
 
 describe("edge cases", () => {
@@ -407,20 +580,32 @@ describe("html() export", () => {
 // ─── fixCommentedCodeBlocks ─────────────────────────────────────────
 
 describe("fixCommentedCodeBlocks", () => {
-	it("strips '# ' from code block opening line", () => {
-		const input = "{code:language=bash# |collapse=false}\n# echo hi\n{code}";
+	it("strips list prefix from code block opening line", () => {
+		const input = "# {code:language=bash|collapse=false}\n# echo hi\n{code}";
 		const result = fixCommentedCodeBlocks(input);
 		expect(result).toContain("{code:language=bash|collapse=false}");
 	});
-	it("strips leading '#' from lines inside code blocks", () => {
-		const input = "{code:language=bash}\n#echo hi\n{code}";
+	it("strips list prefix embedded in code block params", () => {
+		const input = "{code:language=bash# |collapse=false}\necho hi\n{code}";
 		const result = fixCommentedCodeBlocks(input);
-		expect(result).toContain("echo hi");
+		expect(result).toContain("{code:language=bash|collapse=false}");
+	});
+	it("preserves bash comments inside code blocks", () => {
+		const input = "{code:language=bash}\n# echo hi\n#install deps\n{code}";
+		const result = fixCommentedCodeBlocks(input);
+		expect(result).toContain("# echo hi");
+		expect(result).toContain("#install deps");
 	});
 	it("does not strip '#' from lines outside code blocks", () => {
 		const input = "#heading\nsome text\n#another heading";
 		const result = fixCommentedCodeBlocks(input);
 		expect(result).toEqual("#heading\nsome text\n#another heading");
+	});
+	it("strips list prefix from code end line", () => {
+		const input = "{code:language=bash}\necho hi\n# {code}";
+		const result = fixCommentedCodeBlocks(input);
+		expect(result).toContain("{code}");
+		expect(result).not.toContain("# {code}");
 	});
 });
 

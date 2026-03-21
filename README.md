@@ -171,7 +171,6 @@ If the environment variables are not set, the E2E suite is skipped automatically
 | Full document (`test/text.md`) | Multiple structural tags |
 
 
-
 ## Contributing
 
 1. Fork the repository and create a feature branch from `main`.

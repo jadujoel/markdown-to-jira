@@ -21,7 +21,7 @@ declare const document: {
 		remove(): void;
 	};
 	querySelectorAll(selector: string): Array<{
-		addEventListener(event: string, fn: (e?: any) => void): void;
+		addEventListener(event: string, fn: (e?: unknown) => void): void;
 		getAttribute(name: string): string | null;
 		innerHTML: string;
 		remove(): void;
@@ -31,12 +31,12 @@ declare const document: {
 		textContent: string;
 		classList: { add(name: string): void; remove(name: string): void };
 		remove(): void;
-		addEventListener(event: string, fn: () => void): void;
+		addEventListener(event: string, fn: (e?: unknown) => void): void;
 		setAttribute(name: string, value: string): void;
 		title: string;
 	};
-	body: { appendChild(el: any): void };
-	addEventListener(event: string, fn: (e?: any) => void): void;
+	body: { appendChild(el: unknown): void };
+	addEventListener(event: string, fn: (e?: unknown) => void): void;
 };
 declare const window: {
 	convert?: (markdown: string) => string;

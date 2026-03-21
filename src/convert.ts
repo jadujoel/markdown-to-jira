@@ -147,9 +147,12 @@ export class JiraRenderer extends Renderer {
 	listitem(item: Tokens.ListItem): string {
 		const prefix = this._listDepth.join("");
 		let itemText = "";
-		// Render tokens, separating nested lists from inline content
+		// Render tokens, separating nested lists and block-level elements from inline content
 		for (const token of item.tokens) {
 			if (token.type === "list") {
+				itemText = itemText.trimEnd() + "\n" + this.parser.parse([token]);
+			} else if (token.type === "code" || token.type === "blockquote") {
+				// Block-level tokens need to be separated from preceding text
 				itemText = itemText.trimEnd() + "\n" + this.parser.parse([token]);
 			} else {
 				itemText += this.parser.parse([token]);
@@ -225,17 +228,20 @@ export function processCodeBlockLines(
 	onCodeEndLine: (line: string) => string, // {code}
 	onNonCodeBlockLine: (line: string) => string, // Out of the code block!
 ): string {
+	// Match {code} or {code:...} but NOT {{code}} (Jira inline monospace)
+	const reCodeEnd = /(?<!\{)\{code\}(?!\})/;
+	const reCodeStart = /(?<!\{)\{code[:}]/;
+
 	let inCodeBlock = false; // keep track if we are inside a code block
 	// split by lines and map through them to apply transformation
 	return markdown
 		.split("\n")
 		.map((line) => {
 			// check if this line is the start or end of a code block
-			// Check '{code}' first since '{code' is a subset of it.
-			if (line.includes("{code}")) {
+			if (inCodeBlock && reCodeEnd.test(line)) {
 				inCodeBlock = false;
 				return onCodeEndLine(line);
-			} else if (line.includes("{code")) {
+			} else if (!inCodeBlock && reCodeStart.test(line)) {
 				inCodeBlock = true;
 				return onCodeStartLine(line);
 			}
@@ -249,12 +255,17 @@ export function processCodeBlockLines(
 		.join("\n"); // join back to get the transformed string
 }
 
+/**
+ * Strip Jira ordered-list prefixes (e.g. `# `, `## `) that leak into
+ * `{code}` boundary lines when a code block is inside a list item.
+ * Content *inside* code blocks is never modified (bash comments etc. are preserved).
+ */
 export function fixCommentedCodeBlocks(markdown: string): string {
 	return processCodeBlockLines(
 		markdown,
-		(line) => line.split("# ").join(""), // start of code
-		(line) => (line.startsWith("#") ? line.slice(1) : line), // if inside a code block and the line starts with a '#', remove the '#'
-		(line) => line.split("# ").join(""), // end of code
+		(line) => line.replace(/^([#*]+\s)+/, "").replace(/([#*]+\s)+(?=\|)/g, ""), // strip list prefixes from code start line
+		(line) => line, // preserve code block content as-is
+		(line) => line.replace(/^([#*]+\s)+/, ""), // strip list prefixes from code end line
 		(line) => line, // out of code, do nothing
 	);
 }
