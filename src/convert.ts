@@ -41,37 +41,43 @@ export const LANGS = {
 
 
 export class JiraRenderer extends Renderer {
-  paragraph ({ tokens, raw, text }: Tokens.Paragraph): string {
-    dbg(`Paragraph`, text)
-    return text + '\n\n'
+  paragraph ({ tokens }: Tokens.Paragraph): string {
+    const body = this.parser.parseInline(tokens)
+    dbg(`Paragraph`, body)
+    return body + '\n\n'
   }
   html ({ text }: Tokens.HTML): string {
     dbg(`HTML: ${text}`)
     return text
   }
-  heading ({ text, depth }: Tokens.Heading): string {
-    dbg(`Heading: ${text}`)
-    return `h${depth}. ${text}\n\n`
+  heading ({ tokens, depth }: Tokens.Heading): string {
+    const body = this.parser.parseInline(tokens)
+    dbg(`Heading: ${body}`)
+    return `h${depth}. ${body}\n\n`
   }
-  strong ({ text }: Tokens.Strong): string {
-    dbg(`Strong: ${text}`)
-    return `*${text}*`
+  strong ({ tokens }: Tokens.Strong): string {
+    const body = this.parser.parseInline(tokens)
+    dbg(`Strong: ${body}`)
+    return `*${body}*`
   }
-  em ({ text }: Tokens.Em): string {
-    dbg(`Em: ${text}`)
-    return `_${text}_`
+  em ({ tokens }: Tokens.Em): string {
+    const body = this.parser.parseInline(tokens)
+    dbg(`Em: ${body}`)
+    return `_${body}_`
   }
-  del ({ text }: Tokens.Del): string {
-    dbg(`Del: ${text}`)
-    return `-${text}-`
+  del ({ tokens }: Tokens.Del): string {
+    const body = this.parser.parseInline(tokens)
+    dbg(`Del: ${body}`)
+    return `-${body}-`
   }
   codespan ({ text }: Tokens.Codespan): string {
     dbg(`Codespan: ${text}`)
     return `{{${text}}}`
   }
-  blockquote ({ text }: Tokens.Blockquote): string {
-    dbg(`Blockquote: ${text}`)
-    return `{quote}${text}{quote}`
+  blockquote ({ tokens }: Tokens.Blockquote): string {
+    const body = this.parser.parse(tokens)
+    dbg(`Blockquote: ${body}`)
+    return `{quote}${body}{quote}`
   }
   br (): string {
     return '\n'
@@ -79,43 +85,60 @@ export class JiraRenderer extends Renderer {
   hr (): string {
     return '----\n\n'
   }
-  link ({ href, text }: Tokens.Link): string {
-    return `[${text != null ? `${text}|${href}` : href}]`
+  link ({ href, tokens }: Tokens.Link): string {
+    const body = this.parser.parseInline(tokens)
+    return `[${body != null ? `${body}|${href}` : href}]`
   }
-  list ({ raw, ordered }: Tokens.List): string {
-    const type = ordered ? '#' : '*'
-    const result = `${
-      raw.trim()
-      .split('\n')
-      .filter(v => v)
-      .map(line => `\n${type} ${line}`)
-      .join('')
-      .replaceAll("* *", "**")
-    }\n\n`
-    return result
+  list (token: Tokens.List): string {
+    const type = token.ordered ? '#' : '*'
+    let body = ''
+    for (const item of token.items) {
+      body += this.listitem(item, type)
+    }
+    return body + '\n'
   }
-  listitem ({ text }: Tokens.ListItem): string {
-    return `${text}\n`
+  listitem (item: Tokens.ListItem, listType?: string): string {
+    const prefix = listType ?? '*'
+    const body = this.parser.parse(item.tokens)
+    return `${prefix} ${body.trim()}\n`
   }
   image ({ href }: Tokens.Image): string {
     return `!${href}!`
   }
-  table ({ header, raw }: Tokens.Table) {
-    return header + raw + '\n'
+  table (token: Tokens.Table): string {
+    let result = ''
+    // header
+    let headerRow = ''
+    for (const cell of token.header) {
+      headerRow += '||' + this.parser.parseInline(cell.tokens)
+    }
+    result += headerRow + '||\n'
+    // rows
+    for (const row of token.rows) {
+      let rowStr = ''
+      for (const cell of row) {
+        rowStr += '|' + this.parser.parseInline(cell.tokens)
+      }
+      result += rowStr + '|\n'
+    }
+    return result + '\n'
   }
   tablerow ({ text }: Tokens.TableRow): string {
     return text + '\n'
   }
-  tablecell ({ header, text }: Tokens.TableCell): string {
+  tablecell ({ header, tokens }: Tokens.TableCell): string {
     const type = header ? '||' : '|'
-    return type + text
+    return type + this.parser.parseInline(tokens)
   }
   code ({ text, lang }: Tokens.Code): string {
     return `{code:language=${(LANGS as any)[lang ?? ""] ?? ''}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split('\n').length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`
   }
-  text({ text }: Tokens.Text): string {
-    dbg(`Text: ${text}`)
-    return text
+  text(token: Tokens.Text): string {
+    if ('tokens' in token && token.tokens) {
+      return this.parser.parseInline(token.tokens)
+    }
+    dbg(`Text: ${token.text}`)
+    return token.text
   }
   checkbox({ checked }: Tokens.Checkbox): string {
     return checked ? '[x]' : '[-]'
