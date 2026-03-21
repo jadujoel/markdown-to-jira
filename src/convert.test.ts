@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test"
-import { convert } from "./convert.ts"
+import { convert, verbose, html, fixCommentedCodeBlocks, JiraRenderer } from "./convert.ts"
+import { Parser } from "marked"
 
 /** Helper: convert and trim trailing whitespace */
 const c = (md: string) => convert(md).trim()
@@ -326,5 +327,98 @@ describe("edge cases", () => {
   })
   it("url in plain text is auto-linked", () => {
     expect(c("visit http://example.com today")).toEqual("visit [http://example.com|http://example.com] today")
+  })
+})
+
+// ─── verbose() ──────────────────────────────────────────────────────
+
+describe("verbose", () => {
+  it("enables debug logging without error", () => {
+    verbose()
+    // After calling verbose, convert should still work (dbg = console.log)
+    expect(c("hello")).toEqual("hello")
+  })
+})
+
+// ─── Raw HTML passthrough ───────────────────────────────────────────
+
+describe("raw HTML passthrough", () => {
+  it("inline HTML tag is preserved", () => {
+    expect(c("<br>")).toEqual("<br>")
+  })
+  it("div block is preserved", () => {
+    expect(c("<div>content</div>")).toEqual("<div>content</div>")
+  })
+})
+
+// ─── html() export (HTML rendering) ────────────────────────────────
+
+describe("html() export", () => {
+  it("renders markdown to HTML", () => {
+    const result = html("**bold**")
+    expect(result).toContain("<strong>bold</strong>")
+  })
+  it("renders code block with known language", () => {
+    const result = html("```javascript\nconsole.log(1)\n```")
+    expect(result).toContain("<pre>")
+    expect(result).toContain("hljs javascript")
+  })
+  it("renders code block with unknown language as plaintext", () => {
+    const result = html("```unknownlang\nfoo\n```")
+    expect(result).toContain("<pre>")
+    expect(result).toContain("hljs plaintext")
+  })
+  it("renders code block without language as plaintext", () => {
+    const result = html("```\nbar\n```")
+    expect(result).toContain("<pre>")
+    expect(result).toContain("hljs plaintext")
+  })
+})
+
+// ─── fixCommentedCodeBlocks ─────────────────────────────────────────
+
+describe("fixCommentedCodeBlocks", () => {
+  it("strips '# ' from code block opening line", () => {
+    const input = "{code:language=bash# |collapse=false}\n# echo hi\n{code}"
+    const result = fixCommentedCodeBlocks(input)
+    expect(result).toContain("{code:language=bash|collapse=false}")
+  })
+  it("strips leading '#' from lines inside code blocks", () => {
+    const input = "{code:language=bash}\n#echo hi\n{code}"
+    const result = fixCommentedCodeBlocks(input)
+    expect(result).toContain("echo hi")
+  })
+  it("does not strip '#' from lines outside code blocks", () => {
+    const input = "#heading\nsome text\n#another heading"
+    const result = fixCommentedCodeBlocks(input)
+    expect(result).toEqual("#heading\nsome text\n#another heading")
+  })
+})
+
+// ─── tablerow and tablecell (direct call) ───────────────────────────
+
+describe("JiraRenderer direct method calls", () => {
+  it("tablerow appends newline", () => {
+    const renderer = new JiraRenderer()
+    const result = renderer.tablerow({ text: "||A||B" } as any)
+    expect(result).toEqual("||A||B\n")
+  })
+  it("tablecell formats header cell", () => {
+    const renderer = new JiraRenderer()
+    new Parser({ renderer } as any)
+    const result = renderer.tablecell({
+      header: true,
+      tokens: [{ type: "text", raw: "Head", text: "Head" }],
+    } as any)
+    expect(result).toEqual("||Head")
+  })
+  it("tablecell formats data cell", () => {
+    const renderer = new JiraRenderer()
+    new Parser({ renderer } as any)
+    const result = renderer.tablecell({
+      header: false,
+      tokens: [{ type: "text", raw: "Data", text: "Data" }],
+    } as any)
+    expect(result).toEqual("|Data")
   })
 })

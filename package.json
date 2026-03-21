@@ -13,7 +13,9 @@
     "test": "bun test src/convert.test.ts",
     "test:e2e": "bun test src/convert.e2e.test.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@biomejs/biome": "2.4.8"
+  },
   "module": "src/index.ts",
   "type": "module",
   "private": true,

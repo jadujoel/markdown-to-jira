@@ -13,6 +13,9 @@ Convert Markdown to Jira wiki markup. Paste your Markdown into a browser-based e
 - Links, images, blockquotes, horizontal rules, tables
 - Live HTML preview with syntax highlighting (highlight.js)
 - Code blocks longer than 20 lines are automatically collapsed
+- Hide / show each panel — layout preference persisted in localStorage
+- Installable as a PWA (Add to Home Screen / desktop app)
+- Offline support via service worker
 
 ## Supported Code Languages
 
@@ -28,7 +31,11 @@ markdown-to-jira/
 │   ├── convert.e2e.test.ts   # End-to-end tests against live Jira Cloud
 │   ├── index.ts              # Browser entry point (wires up textarea I/O)
 │   ├── index.html            # Single-page app shell
-│   └── style.css             # Dark-theme three-column layout
+│   ├── style.css             # Dark-theme three-column layout
+│   ├── sw.ts                 # Service worker for offline support
+│   ├── manifest.json         # PWA web app manifest
+│   ├── icon-192.svg          # PWA icon (192×192)
+│   └── icon-512.svg          # PWA icon (512×512)
 ├── build.ts                  # Production build script (Bun.build → dist/)
 ├── serve.ts                  # Local dev server
 ├── test/
@@ -63,7 +70,7 @@ Open the URL printed in the terminal (default `http://localhost:3000`). The app 
 bun build.ts
 ```
 
-Outputs minified HTML + JS with source maps to `dist/`.
+Outputs minified HTML + JS with source maps to `dist/`. The build also compiles the service worker and copies PWA assets (manifest, icons).
 
 ## API
 
