@@ -19,7 +19,9 @@ Convert Markdown to Jira wiki markup. Paste your Markdown into a browser-based e
 
 ## Supported Code Languages
 
-`bash`, `javascript`, `typescript`, `python`, `java`, `rust`, `sql`, `css`, `cpp`, `ruby`, `scala`, `php`, `perl`, `groovy`, `diff`, `powershell`, `csharp`, `delphi`, `erlang`, `coldfusion`, `actionscript3`, `javafx`, `vb`, `html/xml`, `none`
+`actionscript3`, `applescript`, `bash`, `c`, `coldfusion`, `cpp`, `csharp`, `css`, `delphi`, `diff`, `erlang`, `groovy`, `html/xml`, `java`, `javafx`, `javascript`, `json`, `kotlin`, `lua`, `none`, `nyan`, `objc`, `pascal`, `perl`, `php`, `plaintext`, `powershell`, `python`, `r`, `ruby`, `rust`, `sass`, `scala`, `sql`, `swift`, `typescript`, `vb`, `xml`, `yaml`
+
+**Aliases:** `sh`/`shell`/`zsh` → bash, `js`/`jsx`/`mjs` → javascript, `ts`/`tsx` → typescript, `py` → python, `rb` → ruby, `rs` → rust, `cs`/`c#` → csharp, `c++` → cpp, `objective-c`/`objectivec` → objc, `yml` → yaml, `html`/`htm`/`xhtml` → html/xml, `kt` → kotlin, `ps1` → powershell, `pl` → perl, `scss` → sass, `vbnet` → vb, `patch` → diff, `text`/`txt` → plaintext
 
 ## Project Structure
 
