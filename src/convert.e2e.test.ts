@@ -803,4 +803,18 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 		expect(html.length).toBeGreaterThan(50);
 		expect(html).toMatch(/<h[1-6][^>]*>/);
 	});
+
+	it("project README.md converts and renders all structural elements", async () => {
+		currentTestName = "project README";
+		const md = await readFile("README.md", "utf8");
+		const html = await render(md);
+		expect(html.length).toBeGreaterThan(500);
+		expect(html).toMatch(/<h1[^>]*>/);
+		expect(html).toMatch(/<h2[^>]*>/);
+		expect(html).toMatch(/<h3[^>]*>/);
+		expect(html).toMatch(/<pre[^>]*>/);
+		expect(html).toMatch(/<li[^>]*>/);
+		expect(html).toMatch(/<t(h|d)[^>]*>/);
+		expect(html).toMatch(/<a[^>]*href/);
+	});
 });
