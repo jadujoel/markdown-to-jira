@@ -42,7 +42,7 @@ export const LANGS = {
 
 export class JiraRenderer extends Renderer {
   paragraph ({ tokens, raw, text }: Tokens.Paragraph): string {
-    dbg(`Paragraph: ${tokens}`, tokens)
+    dbg(`Paragraph`, text)
     return text + '\n\n'
   }
   html ({ text }: Tokens.HTML): string {
