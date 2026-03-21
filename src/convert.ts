@@ -303,7 +303,12 @@ export function correctMarkdown(markdown: string): string {
 export function convert(markdown: string, correct = false): string {
 	const source = correct ? correctMarkdown(markdown) : markdown;
 	const result = <string>(
-		marked(source, { renderer: new JiraRenderer(), async: false })
+		marked(source, {
+			renderer: new JiraRenderer(),
+			async: false,
+			gfm: true,
+			breaks: true,
+		})
 	);
 	return fixDoubleUnderscore(fixCommentedCodeBlocks(result));
 }
@@ -381,7 +386,7 @@ export function fixDoubleUnderscore(markdown: string) {
 		(s) => s, // start code
 		(s) => s, // in code
 		(s) => s, // end of code
-		(s) => s.replaceAll("__", "\\_\\_"), // replace __ with \_ when out of code
+		(s) => s.replaceAll("__", "\\_\\_"), // replace __ with \_\_ when out of code
 	);
 }
 

@@ -40,12 +40,8 @@ markdown-to-jira/
 │   └── icon-512.svg          # PWA icon (512×512)
 ├── build.ts                  # Production build script (Bun.build → dist/)
 ├── serve.ts                  # Local dev server
-├── test/
-│   ├── text.md               # Sample Markdown used by E2E tests
-│   ├── text.txt              # Plain-text test fixture
-│   └── raw.txt               # Raw test fixture
-├── plans/
-│   └── e2e.md                # E2E testing plan / architecture notes
+├── test/                     # Test fixtures and test helpers
+│   └── complex-*.md          # Markdown fixtures used by unit and E2E tests
 ├── tsconfig.json
 └── package.json
 ```
@@ -192,7 +188,7 @@ If the environment variables are not set, the E2E suite is skipped automatically
 ## Tech Stack
 
 - **Runtime / Toolchain:** [Bun](https://bun.sh/)
-- **Markdown Parser:** [marked](https://github.com/markedjs/marked) v15
+- **Markdown Parser:** [marked](https://github.com/markedjs/marked) v17.0.5
 - **Syntax Highlighting:** [highlight.js](https://highlightjs.org/) v11
 - **Language:** TypeScript (strict mode)
 

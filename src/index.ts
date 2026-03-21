@@ -66,7 +66,11 @@ function runConversion() {
 		? correctMarkdown(input.value)
 		: input.value;
 	output.value = convert(src);
-	preview.innerHTML = html(src);
+	const rendered = html(src);
+	// Sanitize: strip <script> tags and event handler attributes to prevent XSS
+	preview.innerHTML = rendered
+		.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+		.replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
 }
 
 input.addEventListener("input", runConversion);
@@ -144,13 +148,19 @@ document.querySelectorAll(".btn-copy").forEach((btn: any) => {
 		const el = sources[sourceId];
 		if (!el) return;
 		const text = el.value ?? el.innerText ?? "";
-		window.navigator.clipboard.writeText(text).then(() => {
-			btn.innerHTML = ICON_CHECK;
-			showToast("Copied to clipboard");
-			setTimeout(() => {
+		window.navigator.clipboard
+			.writeText(text)
+			.then(() => {
+				btn.innerHTML = ICON_CHECK;
+				showToast("Copied to clipboard");
+				setTimeout(() => {
+					btn.innerHTML = ICON_COPY;
+				}, 1500);
+			})
+			.catch(() => {
 				btn.innerHTML = ICON_COPY;
-			}, 1500);
-		});
+				showToast("Failed to copy to clipboard");
+			});
 	});
 });
 
@@ -186,15 +196,6 @@ function saveHiddenSections(hidden: string[]) {
 }
 
 function updateGridColumns() {
-	const visible = SECTION_IDS.filter(
-		(id) => !document.getElementById(id).classList.contains("hidden"),
-	);
-	const cols = SECTION_IDS.map((id) => {
-		const panel = document.getElementById(id);
-		if (panel.classList.contains("hidden")) return null;
-		return "1fr";
-	});
-	// Build grid template: for each section, if visible "1fr", if hidden but has restore bar "auto"
 	const parts: string[] = [];
 	for (const id of SECTION_IDS) {
 		const panel = document.getElementById(id);
@@ -209,6 +210,7 @@ function updateGridColumns() {
 
 function hideSection(sectionId: string) {
 	const panel = document.getElementById(sectionId);
+	if (panel.classList.contains("hidden")) return;
 	panel.classList.add("hidden");
 
 	// Create restore bar
