@@ -41,6 +41,8 @@ export const LANGS = {
 
 
 export class JiraRenderer extends Renderer {
+  private _listDepth: string[] = []
+
   paragraph ({ tokens }: Tokens.Paragraph): string {
     const body = this.parser.parseInline(tokens)
     dbg(`Paragraph`, body)
@@ -91,16 +93,27 @@ export class JiraRenderer extends Renderer {
   }
   list (token: Tokens.List): string {
     const type = token.ordered ? '#' : '*'
+    this._listDepth.push(type)
     let body = ''
     for (const item of token.items) {
-      body += this.listitem(item, type)
+      body += this.listitem(item)
     }
-    return body + '\n'
+    this._listDepth.pop()
+    // Only add trailing newline for top-level lists
+    return this._listDepth.length === 0 ? body + '\n' : body
   }
-  listitem (item: Tokens.ListItem, listType?: string): string {
-    const prefix = listType ?? '*'
-    const body = this.parser.parse(item.tokens)
-    return `${prefix} ${body.trim()}\n`
+  listitem (item: Tokens.ListItem): string {
+    const prefix = this._listDepth.join('')
+    let itemText = ''
+    // Render tokens, separating nested lists from inline content
+    for (const token of item.tokens) {
+      if (token.type === 'list') {
+        itemText = itemText.trimEnd() + '\n' + this.parser.parse([token])
+      } else {
+        itemText += this.parser.parse([token])
+      }
+    }
+    return `${prefix} ${itemText.trim()}\n`
   }
   image ({ href }: Tokens.Image): string {
     return `!${href}!`
@@ -141,7 +154,7 @@ export class JiraRenderer extends Renderer {
     return token.text
   }
   checkbox({ checked }: Tokens.Checkbox): string {
-    return checked ? '[x]' : '[-]'
+    return checked ? '[x] ' : '[-] '
   }
 }
 

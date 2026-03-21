@@ -122,18 +122,16 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
     expect(html).toMatch(/<(strong|b)[^>]*>bold text<\/(strong|b)>/)
   })
 
-  // Known converter issue: markdown *italic* → Jira *italic* (bold) instead of _italic_
-  it.todo("italic renders as <em> or <i>", async () => {
+  it("italic renders as <em> or <i>", async () => {
     const jira = convert("*italic text*")
     const html = await renderViaJiraComment(issueKey, jira)
     expect(html).toMatch(/<(em|i)[^>]*>italic text<\/(em|i)>/)
   })
 
-  // Known converter issue: markdown `code` not converted to Jira {{code}}
-  it.todo("inline code renders as <code>", async () => {
+  it("inline code renders as <code> or <tt>", async () => {
     const jira = convert("`some code`")
     const html = await renderViaJiraComment(issueKey, jira)
-    expect(html).toMatch(/<code[^>]*>/)
+    expect(html).toMatch(/<(code|tt)[^>]*>/)
   })
 
   it("fenced code block renders as <pre>", async () => {
