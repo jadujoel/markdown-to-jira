@@ -185,6 +185,15 @@ const e2e = skipOrDescribe();
 
 e2e("e2e: markdown → jira comment → rendered HTML", () => {
 	let issueKey: string;
+	let currentTestName = "";
+
+	/** Convert markdown → jira, render via Jira API, save result, return HTML */
+	async function render(markdown: string): Promise<string> {
+		const jira = convert(markdown);
+		const html = await renderViaJiraComment(issueKey, jira);
+		await saveResult(currentTestName, markdown, jira, html);
+		return html;
+	}
 
 	beforeAll(async () => {
 		issueKey = await createTestIssue();
@@ -192,294 +201,335 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 
 	afterAll(async () => {
 		if (issueKey) await deleteTestIssue(issueKey);
+		if (testResults.length > 0) await saveIndex();
 	});
 
 	it("heading renders as <h1>", async () => {
-		const jira = convert("# Heading 1");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "heading renders as h1";
+		const html = await render("# Heading 1");
 		expect(html).toMatch(/<h1[^>]*>/);
 	});
 
 	it("bold renders as <strong> or <b>", async () => {
-		const jira = convert("**bold text**");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "bold renders as strong or b";
+		const html = await render("**bold text**");
 		expect(html).toMatch(/<(strong|b)[^>]*>bold text<\/(strong|b)>/);
 	});
 
 	it("italic renders as <em> or <i>", async () => {
-		const jira = convert("*italic text*");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "italic renders as em or i";
+		const html = await render("*italic text*");
 		expect(html).toMatch(/<(em|i)[^>]*>italic text<\/(em|i)>/);
 	});
 
 	it("inline code renders as <code> or <tt>", async () => {
-		const jira = convert("`some code`");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "inline code renders as code or tt";
+		const html = await render("`some code`");
 		expect(html).toMatch(/<(code|tt)[^>]*>/);
 	});
 
 	it("fenced code block renders as <pre>", async () => {
-		const jira = convert("```javascript\nconsole.log('hello')\n```");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "fenced code block renders as pre";
+		const html = await render("```javascript\nconsole.log('hello')\n```");
 		expect(html).toMatch(/<pre[^>]*>/);
 	});
 
 	it("unordered list renders as <li>", async () => {
-		const jira = convert("- item one\n- item two");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "unordered list renders as li";
+		const html = await render("- item one\n- item two");
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("ordered list renders as <ol>", async () => {
-		const jira = convert("1. first\n2. second");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "ordered list renders as ol";
+		const html = await render("1. first\n2. second");
 		expect(html).toMatch(/<ol[^>]*>/);
 	});
 
 	it("link renders as <a> with href", async () => {
-		const jira = convert("[click here](https://example.com)");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "link renders as a with href";
+		const html = await render("[click here](https://example.com)");
 		expect(html).toMatch(/<a[^>]*href/);
 	});
 
 	it("blockquote renders correctly", async () => {
-		const jira = convert("> This is a quote");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "blockquote renders correctly";
+		const html = await render("> This is a quote");
 		expect(html).toMatch(/This is a quote/);
 	});
 
 	it("horizontal rule renders as <hr>", async () => {
-		const jira = convert("---");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "horizontal rule renders as hr";
+		const html = await render("---");
 		expect(html).toMatch(/<hr[^>]*\/?>/);
 	});
 
 	it("strikethrough renders with <del> or <s>", async () => {
-		const jira = convert("~~deleted~~");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "strikethrough renders with del or s";
+		const html = await render("~~deleted~~");
 		expect(html).toMatch(
 			/<(del|s|span[^>]*text-decoration:\s*line-through)[^>]*>/,
 		);
 	});
 
 	it("full document roundtrip produces valid HTML", async () => {
-		const markdown = await Bun.file("test/text.md").text();
-		// Truncate to stay under Jira's 32,767 char comment limit
-		const jira = convert(markdown).slice(0, 30000);
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "full document roundtrip";
+		const markdown = [
+			"# Project Overview",
+			"",
+			"This is a **full document** test with _multiple_ elements.",
+			"",
+			"## Features",
+			"",
+			"- First item with `inline code`",
+			"- Second item with **bold text**",
+			"  - Nested item",
+			"  - Another nested item",
+			"- Third item",
+			"",
+			"### Code Example",
+			"",
+			"```typescript",
+			"function hello(name: string): string {",
+			"  return `Hello, $\\{name}!`;",
+			"}",
+			"```",
+			"",
+			"| Column A | Column B |",
+			"| --- | --- |",
+			"| Cell 1 | Cell 2 |",
+			"| Cell 3 | Cell 4 |",
+			"",
+			"> A blockquote with **important** info.",
+			"",
+			"---",
+			"",
+			"1. Ordered item one",
+			"2. Ordered item two",
+			"   1. Sub-item",
+			"",
+			"Final paragraph with [a link](https://example.com) and ~~strikethrough~~.",
+		].join("\n");
+		const html = await render(markdown);
 		expect(html.length).toBeGreaterThan(100);
 		expect(html).toMatch(/<h[1-6][^>]*>/);
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
-	// ─── Additional 32 E2E Tests ──────────────────────────────────────
+	// ─── Additional E2E Tests ───────────────────────────────────────
 
 	it("h2 heading renders as <h2>", async () => {
-		const jira = convert("## Heading 2");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "h2 heading";
+		const html = await render("## Heading 2");
 		expect(html).toMatch(/<h2[^>]*>/);
 	});
 
 	it("h3 heading renders as <h3>", async () => {
-		const jira = convert("### Heading 3");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "h3 heading";
+		const html = await render("### Heading 3");
 		expect(html).toMatch(/<h3[^>]*>/);
 	});
 
 	it("h4 heading renders as <h4>", async () => {
-		const jira = convert("#### Heading 4");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "h4 heading";
+		const html = await render("#### Heading 4");
 		expect(html).toMatch(/<h4[^>]*>/);
 	});
 
 	it("h5 heading renders as <h5>", async () => {
-		const jira = convert("##### Heading 5");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "h5 heading";
+		const html = await render("##### Heading 5");
 		expect(html).toMatch(/<h5[^>]*>/);
 	});
 
 	it("h6 heading renders as <h6>", async () => {
-		const jira = convert("###### Heading 6");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "h6 heading";
+		const html = await render("###### Heading 6");
 		expect(html).toMatch(/<h6[^>]*>/);
 	});
 
 	it("bold with underscores renders as <strong> or <b>", async () => {
-		const jira = convert("__bold underscores__");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "bold with underscores";
+		const html = await render("__bold underscores__");
 		expect(html).toMatch(/<(strong|b)[^>]*>/);
 	});
 
 	it("italic with underscores renders as <em> or <i>", async () => {
-		const jira = convert("_italic underscores_");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "italic with underscores";
+		const html = await render("_italic underscores_");
 		expect(html).toMatch(/<(em|i)[^>]*>/);
 	});
 
 	it("bold italic renders correctly", async () => {
-		const jira = convert("***bold italic***");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "bold italic";
+		const html = await render("***bold italic***");
 		expect(html).toMatch(/<(strong|b|em|i)[^>]*>/);
 	});
 
 	it("nested bold inside italic renders both", async () => {
-		const jira = convert("*italic and **bold** text*");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "nested bold inside italic";
+		const html = await render("*italic and **bold** text*");
 		expect(html).toMatch(/<(em|i)[^>]*>/);
 		expect(html).toMatch(/<(strong|b)[^>]*>/);
 	});
 
 	it("inline code in paragraph renders as <code> or <tt>", async () => {
-		const jira = convert("Use `console.log()` for debugging.");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "inline code in paragraph";
+		const html = await render("Use `console.log()` for debugging.");
 		expect(html).toMatch(/<(code|tt)[^>]*>/);
 		expect(html).toMatch(/console\.log/);
 	});
 
 	it("code block with typescript renders as <pre>", async () => {
-		const jira = convert("```typescript\nconst x: number = 1\n```");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "code block typescript";
+		const html = await render("```typescript\nconst x: number = 1\n```");
 		expect(html).toMatch(/<pre[^>]*>/);
 	});
 
 	it("code block with python renders as <pre>", async () => {
-		const jira = convert("```python\ndef hello():\n    print('hi')\n```");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "code block python";
+		const html = await render("```python\ndef hello():\n    print('hi')\n```");
 		expect(html).toMatch(/<pre[^>]*>/);
 	});
 
 	it("code block without language renders as <pre>", async () => {
-		const jira = convert("```\nplain code\n```");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "code block no language";
+		const html = await render("```\nplain code\n```");
 		expect(html).toMatch(/<pre[^>]*>/);
 	});
 
 	it("nested unordered list renders nested <ul>", async () => {
-		const jira = convert("- a\n  - b\n  - c\n- d");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "nested unordered list";
+		const html = await render("- a\n  - b\n  - c\n- d");
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("nested ordered list renders nested <ol>", async () => {
-		const jira = convert("1. a\n   1. b\n   2. c\n2. d");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "nested ordered list";
+		const html = await render("1. a\n   1. b\n   2. c\n2. d");
 		expect(html).toMatch(/<ol[^>]*>/);
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("mixed list renders correctly", async () => {
-		const jira = convert(
+		currentTestName = "mixed list";
+		const html = await render(
 			"1. ordered\n   - unordered child\n   - unordered child\n2. second",
 		);
-		const html = await renderViaJiraComment(issueKey, jira);
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("checkbox renders as list items", async () => {
-		const jira = convert("- [x] done\n- [ ] todo");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "checkbox list";
+		const html = await render("- [x] done\n- [ ] todo");
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("link with bold text renders with <a> and <strong>", async () => {
-		const jira = convert("[**bold link**](https://example.com)");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "link with bold text";
+		const html = await render("[**bold link**](https://example.com)");
 		expect(html).toMatch(/<a[^>]*href/);
 	});
 
 	it("image renders as <img>", async () => {
-		const jira = convert("![alt text](https://via.placeholder.com/150)");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "image renders as img";
+		const html = await render("![alt text](https://via.placeholder.com/150)");
 		expect(html).toMatch(/<img[^>]*>/);
 	});
 
 	it("table renders with header and data cells", async () => {
-		const jira = convert("| Name | Age |\n| --- | --- |\n| Alice | 30 |");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "table with header and data";
+		const html = await render(
+			"| Name | Age |\n| --- | --- |\n| Alice | 30 |",
+		);
 		expect(html).toMatch(/<t(h|d)[^>]*>/);
 		expect(html).toMatch(/Alice/);
 	});
 
 	it("table with bold header renders correctly", async () => {
-		const jira = convert(
+		currentTestName = "table with bold header";
+		const html = await render(
 			"| **Header** | _Other_ |\n| --- | --- |\n| cell | data |",
 		);
-		const html = await renderViaJiraComment(issueKey, jira);
 		expect(html).toMatch(/<t(h|d)[^>]*>/);
 	});
 
 	it("multiple paragraphs render as separate blocks", async () => {
-		const jira = convert("First paragraph.\n\nSecond paragraph.");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "multiple paragraphs";
+		const html = await render("First paragraph.\n\nSecond paragraph.");
 		expect(html).toMatch(/First paragraph/);
 		expect(html).toMatch(/Second paragraph/);
 	});
 
 	it("blockquote with bold renders both", async () => {
-		const jira = convert("> **Important** notice");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "blockquote with bold";
+		const html = await render("> **Important** notice");
 		expect(html).toMatch(/Important/);
 	});
 
 	it("strikethrough with bold renders both", async () => {
-		const jira = convert("~~**deleted bold**~~");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "strikethrough with bold";
+		const html = await render("~~**deleted bold**~~");
 		expect(html).toMatch(/deleted bold/);
 	});
 
 	it("line break with two trailing spaces renders newline", async () => {
-		const jira = convert("line one  \nline two");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "line break trailing spaces";
+		const html = await render("line one  \nline two");
 		expect(html).toMatch(/line one/);
 		expect(html).toMatch(/line two/);
 	});
 
 	it("heading with inline code renders both", async () => {
-		const jira = convert("## `code` heading");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "heading with inline code";
+		const html = await render("## `code` heading");
 		expect(html).toMatch(/<h2[^>]*>/);
 	});
 
 	it("code block with shell renders as <pre>", async () => {
-		const jira = convert("```shell\nls -la\n```");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "code block shell";
+		const html = await render("```shell\nls -la\n```");
 		expect(html).toMatch(/<pre[^>]*>/);
 	});
 
 	it("3-level nested list renders correctly", async () => {
-		const jira = convert("- a\n  - b\n    - c\n  - d\n- e");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "3-level nested list";
+		const html = await render("- a\n  - b\n    - c\n  - d\n- e");
 		expect(html).toMatch(/<li[^>]*>/);
 	});
 
 	it("multiple headings in a document render correctly", async () => {
-		const jira = convert(
+		currentTestName = "multiple headings";
+		const html = await render(
 			"# Title\n\nIntro\n\n## Section 1\n\nContent\n\n## Section 2\n\nMore content",
 		);
-		const html = await renderViaJiraComment(issueKey, jira);
 		expect(html).toMatch(/<h1[^>]*>/);
 		expect(html).toMatch(/<h2[^>]*>/);
 	});
 
 	it("horizontal rule between paragraphs renders <hr>", async () => {
-		const jira = convert("Above\n\n---\n\nBelow");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "hr between paragraphs";
+		const html = await render("Above\n\n---\n\nBelow");
 		expect(html).toMatch(/<hr[^>]*\/?>/);
 		expect(html).toMatch(/Above/);
 		expect(html).toMatch(/Below/);
 	});
 
 	it("heading + list + paragraph renders all elements", async () => {
-		const jira = convert("# Title\n\n- item 1\n- item 2\n\nClosing paragraph.");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "heading list paragraph combo";
+		const html = await render(
+			"# Title\n\n- item 1\n- item 2\n\nClosing paragraph.",
+		);
 		expect(html).toMatch(/<h1[^>]*>/);
 		expect(html).toMatch(/<li[^>]*>/);
 		expect(html).toMatch(/Closing paragraph/);
 	});
 
 	it("link with inline code text renders correctly", async () => {
-		const jira = convert("[`package.json`](https://example.com/package.json)");
-		const html = await renderViaJiraComment(issueKey, jira);
+		currentTestName = "link with inline code";
+		const html = await render(
+			"[`package.json`](https://example.com/package.json)",
+		);
 		expect(html).toMatch(/<a[^>]*href/);
 	});
 });

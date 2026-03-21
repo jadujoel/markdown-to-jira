@@ -135,3 +135,4 @@ plans/
 src/_probe.ts
 src/_probe2.ts
 .tmp
+e2e-results
