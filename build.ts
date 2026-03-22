@@ -10,7 +10,7 @@ export async function build() {
 	// Rename the hashed SW output to a stable dist/sw.js so runtime registration works
 	const swOutput = svgBuild.outputs.find((o) => o.path.endsWith(".js"));
 	if (swOutput) {
-		const stablePath = swOutput.path.replace(/\/[^\/]+\.js$/, "/sw.js");
+		const stablePath = swOutput.path.replace(/\/[^/]+\.js$/, "/sw.js");
 		if (swOutput.path !== stablePath) {
 			await Bun.write(stablePath, Bun.file(swOutput.path));
 		}
