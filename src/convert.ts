@@ -1,7 +1,7 @@
 import hljs from "highlight.js";
 import { marked, Renderer, type Tokens } from "marked";
 
-let dbg = (...args: unknown[]) => {};
+let dbg = (..._args: unknown[]) => {};
 export function verbose() {
 	dbg = console.log;
 }
@@ -189,7 +189,7 @@ export class JiraRenderer extends Renderer {
 		return type + this.parser.parseInline(tokens);
 	}
 	code({ text, lang }: Tokens.Code): string {
-		return `{code:language=${(LANGS as any)[lang ?? ""] ?? ""}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split("\n").length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`;
+		return `{code:language=${LANGS[lang as keyof typeof LANGS] ?? ""}|borderStyle=solid|theme=RDark|linenumbers=true|collapse=${text.split("\n").length > MAX_CODE_LINE}}\n${text}\n{code}\n\n`;
 	}
 	text(token: Tokens.Text): string {
 		if ("tokens" in token && token.tokens) {
@@ -399,7 +399,7 @@ function validLanguage(language?: string): string {
 }
 
 class HTMLRenderer extends Renderer {
-	code({ text, lang, escaped }: Tokens.Code): string {
+	code({ text, lang }: Tokens.Code): string {
 		const language = validLanguage(lang);
 		return `<pre><code class="hljs ${language}">${hljs.highlight(text, { language }).value}</code></pre>`;
 	}

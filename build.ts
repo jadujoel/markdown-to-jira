@@ -21,7 +21,8 @@ export async function build() {
 		svgBuild.outputs
 			.filter((o) => o.path.endsWith(".svg"))
 			.map((o) => {
-				const hashed = o.path.split("/").pop()!;
+				const hashed = o.path.split("/").pop();
+				if (!hashed) throw new Error("Unexpected empty filename");
 				const original = hashed.replace(/-[a-z0-9]+\.svg$/, ".svg");
 				return [original, hashed] as const;
 			}),
