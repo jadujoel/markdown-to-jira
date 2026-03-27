@@ -54,6 +54,12 @@ describe("inline code", () => {
 	it("``code with backtick``", () => {
 		expect(c("``code``")).toEqual("{{code}}");
 	});
+	it("curly braces are escaped", () => {
+		expect(c("`/old/path/{resource}`")).toEqual("{{/old/path/\\{resource\\}}}");
+	});
+	it("multiple curly braces are escaped", () => {
+		expect(c("`{key}={value}`")).toEqual("{{\\{key\\}=\\{value\\}}}");
+	});
 });
 
 describe("bold italic", () => {
@@ -385,7 +391,7 @@ describe("code blocks inside list items", () => {
 		const md = "- Use `code` blocks\n- And `{code}` markers";
 		const result = c(md);
 		expect(result).toContain("* Use {{code}} blocks");
-		expect(result).toContain("* And {{{code}}} markers");
+		expect(result).toContain("* And {{\\{code\\}}} markers");
 	});
 });
 
