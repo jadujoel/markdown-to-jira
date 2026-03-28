@@ -117,6 +117,9 @@ export class JiraRenderer extends Renderer {
 	codespan({ text }: Tokens.Codespan): string {
 		dbg(`Codespan: ${text}`);
 		let escaped = text
+			// First: insert ZWS between \ and Jira-special chars so the
+			// backslash is not consumed as a Jira escape prefix.
+			.replace(/\\([{}[\]|])/g, "\\\u200B$1")
 			.replaceAll("{", "\\{")
 			.replaceAll("}", "\\}")
 			.replaceAll("[", "\\[")
