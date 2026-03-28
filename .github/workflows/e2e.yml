@@ -15,7 +15,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun test src/convert.e2e.test.ts
+      - run: bun test --timeout 30000 src/convert.e2e.test.ts
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
