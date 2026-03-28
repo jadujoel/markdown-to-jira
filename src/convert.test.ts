@@ -60,14 +60,14 @@ describe("inline code", () => {
 	it("multiple curly braces are escaped", () => {
 		expect(c("`{key}={value}`")).toEqual("{{\\{key\\}=\\{value\\}}}");
 	});
-	it("backslash is escaped", () => {
-		expect(c("`C:\\Users\\admin`")).toEqual("{{C:\\\\Users\\\\admin}}");
+	it("backslash is preserved (not escaped)", () => {
+		expect(c("`C:\\Users\\admin`")).toEqual("{{C:\\Users\\admin}}");
 	});
-	it("trailing backslash is escaped", () => {
-		expect(c("`path\\`")).toEqual("{{path\\\\}}");
+	it("trailing backslash gets zero-width space to protect closing", () => {
+		expect(c("`path\\`")).toEqual("{{path\\\u200B}}");
 	});
-	it("backslash before curly brace is escaped", () => {
-		expect(c("`\\{test\\}`")).toEqual("{{\\\\\\{test\\\\\\}}}");
+	it("backslash before curly brace is handled correctly", () => {
+		expect(c("`\\{test\\}`")).toEqual("{{\\\\{test\\\\}}}");
 	});
 	it("square brackets are escaped", () => {
 		expect(c("`items[0]`")).toEqual("{{items\\[0\\]}}");

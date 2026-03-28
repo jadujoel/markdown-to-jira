@@ -116,13 +116,18 @@ export class JiraRenderer extends Renderer {
 	}
 	codespan({ text }: Tokens.Codespan): string {
 		dbg(`Codespan: ${text}`);
-		const escaped = text
-			.replaceAll("\\", "\\\\")
+		let escaped = text
 			.replaceAll("{", "\\{")
 			.replaceAll("}", "\\}")
 			.replaceAll("[", "\\[")
 			.replaceAll("]", "\\]")
 			.replaceAll("|", "\\|");
+		// Jira only recognises \ as escape before { } [ ] |
+		// A trailing \ would escape the first } of }}, breaking monospace.
+		// Insert a zero-width space to separate them.
+		if (escaped.endsWith("\\")) {
+			escaped += "\u200B";
+		}
 		return `{{${escaped}}}`;
 	}
 	blockquote({ tokens }: Tokens.Blockquote): string {
