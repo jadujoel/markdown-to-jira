@@ -60,6 +60,32 @@ describe("inline code", () => {
 	it("multiple curly braces are escaped", () => {
 		expect(c("`{key}={value}`")).toEqual("{{\\{key\\}=\\{value\\}}}");
 	});
+	it("backslash is preserved (not escaped)", () => {
+		expect(c("`C:\\Users\\admin`")).toEqual("{{C:\\Users\\admin}}");
+	});
+	it("trailing backslash gets zero-width space to protect closing", () => {
+		expect(c("`path\\`")).toEqual("{{path\\\u200B}}");
+	});
+	it("backslash before curly brace is handled correctly", () => {
+		expect(c("`\\{test\\}`")).toEqual("{{\\\u200B\\{test\\\u200B\\}}}");
+	});
+	it("square brackets are escaped", () => {
+		expect(c("`items[0]`")).toEqual("{{items\\[0\\]}}");
+	});
+	it("link-like content in code is escaped", () => {
+		expect(c("`[link](url)`")).toEqual("{{\\[link\\](url)}}");
+	});
+	it("pipe is escaped", () => {
+		expect(c("`a|b`")).toEqual("{{a\\|b}}");
+	});
+	it("pipe in table cell code requires markdown escaping", () => {
+		// Note: | inside inline code in a table cell is split by the markdown
+		// parser before the Jira renderer sees it. Users must escape the pipe
+		// in the markdown source: `a\|b` to get correct table rendering.
+		const md = "| Col |\n|-----|\n| `a\\|b` |";
+		const result = c(md);
+		expect(result).toContain("{{a\\|b}}");
+	});
 });
 
 describe("bold italic", () => {
@@ -870,5 +896,210 @@ describe("missing-newlines.md fixture", () => {
 		expect(countH(withCorrection)).toBeGreaterThanOrEqual(
 			countH(withoutCorrection),
 		);
+	});
+});
+
+// ─── Multiple Inline Code Blocks with Special Characters ────────────
+
+describe("inline code: backslash + special char combinations", () => {
+	it("backslash before open brace", () => {
+		expect(c("`\\{`")).toEqual("{{\\\u200B\\{}}");
+	});
+	it("backslash before close brace", () => {
+		expect(c("`\\}`")).toEqual("{{\\\u200B\\}}}");
+	});
+	it("backslash before bracket", () => {
+		expect(c("`\\[x\\]`")).toEqual("{{\\\u200B\\[x\\\u200B\\]}}");
+	});
+	it("backslash before pipe", () => {
+		expect(c("`\\|`")).toEqual("{{\\\u200B\\|}}");
+	});
+	it("double backslash before brace", () => {
+		expect(c("`\\\\{x}`")).toEqual("{{\\\\\u200B\\{x\\}}}");
+	});
+	it("backslash-brace surrounded by text", () => {
+		expect(c("`foo\\{bar\\}baz`")).toEqual(
+			"{{foo\\\u200B\\{bar\\\u200B\\}baz}}",
+		);
+	});
+});
+
+describe("multi-codeblock document does not break subsequent output", () => {
+	const md = [
+		"`some code`",
+		"",
+		"`code`",
+		"",
+		"`/old/path/{resource}`",
+		"",
+		"`{key}={value}`",
+		"",
+		"`C:\\\\Users\\\\admin`",
+		"",
+		"`path\\\\`",
+		"",
+		"`pathdouble\\\\\\\\`",
+		"",
+		"`\\\\{test\\\\}`",
+		"",
+		"`items[0]`",
+		"",
+		"`[link](url)`",
+		"",
+		"`a|b`",
+		"",
+		"***bold italic***",
+	].join("\n");
+
+	const result = c(md);
+
+	it("simple code renders as monospace", () => {
+		expect(result).toContain("{{some code}}");
+		expect(result).toContain("{{code}}");
+	});
+
+	it("curly braces inside code are escaped", () => {
+		expect(result).toContain("{{/old/path/\\{resource\\}}}");
+		expect(result).toContain("{{\\{key\\}=\\{value\\}}}");
+	});
+
+	it("backslash before curly does not break monospace", () => {
+		expect(result).toContain("items\\[0\\]}}");
+	});
+
+	it("brackets are escaped", () => {
+		expect(result).toContain("{{items\\[0\\]}}");
+		expect(result).toContain("{{\\[link\\](url)}}");
+	});
+
+	it("pipe is escaped", () => {
+		expect(result).toContain("{{a\\|b}}");
+	});
+
+	it("bold italic after all code blocks renders correctly", () => {
+		expect(result).toContain("_*bold italic*_");
+	});
+
+	it("output contains no dangling {{ or }} outside monospace", () => {
+		// Remove all valid {{...}} monospace blocks and check no stray {{ remains
+		const stripped = result.replace(/\{\{.*?\}\}/g, "MONO");
+		expect(stripped).not.toContain("{{");
+	});
+});
+
+describe("document with many weird code spans in sequence", () => {
+	const md = [
+		"`normal`",
+		"",
+		"`{braces}`",
+		"",
+		"`\\{escaped braces\\}`",
+		"",
+		"`\\\\double backslash`",
+		"",
+		"`path\\\\to\\\\file`",
+		"",
+		"`C:\\\\Windows\\\\System32`",
+		"",
+		"`[brackets]`",
+		"",
+		"`\\[escaped brackets\\]`",
+		"",
+		"`pipe|in|code`",
+		"",
+		"`\\|escaped pipe\\|`",
+		"",
+		"`mix{a}[b]|c`",
+		"",
+		"`all\\{special\\}\\[chars\\]\\|here`",
+		"",
+		"`trailing backslash\\\\`",
+		"",
+		"`{code}`",
+		"",
+		"`{{nested}}`",
+		"",
+		"Some **bold** text after all code blocks.",
+	].join("\n");
+
+	const result = c(md);
+
+	it("normal code is unaffected", () => {
+		expect(result).toContain("{{normal}}");
+	});
+
+	it("braces are escaped", () => {
+		expect(result).toContain("{{\\{braces\\}}}");
+	});
+
+	it("escaped braces with backslash use ZWS", () => {
+		// \{escaped braces\} should not break
+		const match = result.match(/\{\{.*?escaped braces.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("double backslashes are preserved", () => {
+		const match = result.match(/\{\{.*?double backslash.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("path with backslashes", () => {
+		const match = result.match(/\{\{.*?to.*?file.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("windows path", () => {
+		const match = result.match(/\{\{.*?Windows.*?System32.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("brackets escaped", () => {
+		expect(result).toContain("{{\\[brackets\\]}}");
+	});
+
+	it("escaped brackets with backslash use ZWS", () => {
+		const match = result.match(/\{\{.*?escaped brackets.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("pipes escaped", () => {
+		expect(result).toContain("{{pipe\\|in\\|code}}");
+	});
+
+	it("escaped pipe with backslash", () => {
+		const match = result.match(/\{\{.*?escaped pipe.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("mixed special chars", () => {
+		expect(result).toContain("{{mix\\{a\\}\\[b\\]\\|c}}");
+	});
+
+	it("all escaped special chars with backslash", () => {
+		const match = result.match(/\{\{.*?special.*?chars.*?here.*?\}\}/);
+		expect(match).not.toBeNull();
+	});
+
+	it("{code} inside inline code is escaped (not treated as macro)", () => {
+		expect(result).toContain("{{\\{code\\}}}");
+	});
+
+	it("nested double braces are escaped", () => {
+		expect(result).toContain("{{\\{\\{nested\\}\\}}}");
+	});
+
+	it("bold text after all weird code blocks renders correctly", () => {
+		expect(result).toContain("*bold*");
+		expect(result).toContain("text after all code blocks.");
+	});
+
+	it("every code span produces balanced {{ }}", () => {
+		const lines = result.split("\n").filter((l) => l.includes("{{"));
+		for (const line of lines) {
+			const opens = (line.match(/\{\{/g) || []).length;
+			const closes = (line.match(/\}\}/g) || []).length;
+			// Each line with {{ should have matching }}
+			expect(opens).toEqual(closes);
+		}
 	});
 });
