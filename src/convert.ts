@@ -116,7 +116,13 @@ export class JiraRenderer extends Renderer {
 	}
 	codespan({ text }: Tokens.Codespan): string {
 		dbg(`Codespan: ${text}`);
-		const escaped = text.replaceAll("{", "\\{").replaceAll("}", "\\}");
+		const escaped = text
+			.replaceAll("\\", "\\\\")
+			.replaceAll("{", "\\{")
+			.replaceAll("}", "\\}")
+			.replaceAll("[", "\\[")
+			.replaceAll("]", "\\]")
+			.replaceAll("|", "\\|");
 		return `{{${escaped}}}`;
 	}
 	blockquote({ tokens }: Tokens.Blockquote): string {

@@ -60,6 +60,32 @@ describe("inline code", () => {
 	it("multiple curly braces are escaped", () => {
 		expect(c("`{key}={value}`")).toEqual("{{\\{key\\}=\\{value\\}}}");
 	});
+	it("backslash is escaped", () => {
+		expect(c("`C:\\Users\\admin`")).toEqual("{{C:\\\\Users\\\\admin}}");
+	});
+	it("trailing backslash is escaped", () => {
+		expect(c("`path\\`")).toEqual("{{path\\\\}}");
+	});
+	it("backslash before curly brace is escaped", () => {
+		expect(c("`\\{test\\}`")).toEqual("{{\\\\\\{test\\\\\\}}}");
+	});
+	it("square brackets are escaped", () => {
+		expect(c("`items[0]`")).toEqual("{{items\\[0\\]}}");
+	});
+	it("link-like content in code is escaped", () => {
+		expect(c("`[link](url)`")).toEqual("{{\\[link\\](url)}}");
+	});
+	it("pipe is escaped", () => {
+		expect(c("`a|b`")).toEqual("{{a\\|b}}");
+	});
+	it("pipe in table cell code requires markdown escaping", () => {
+		// Note: | inside inline code in a table cell is split by the markdown
+		// parser before the Jira renderer sees it. Users must escape the pipe
+		// in the markdown source: `a\|b` to get correct table rendering.
+		const md = "| Col |\n|-----|\n| `a\\|b` |";
+		const result = c(md);
+		expect(result).toContain("{{a\\|b}}");
+	});
 });
 
 describe("bold italic", () => {
