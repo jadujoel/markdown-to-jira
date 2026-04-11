@@ -65,6 +65,8 @@ function escapeHtml(s: string): string {
 async function copyTestResults() {
 	const E2E_DIR = "e2e-results";
 	const OUT_DIR = "dist/tests";
+	const exists = await Bun.file(`${E2E_DIR}/index.html`).exists()
+	if (!exists) return;
 	const htmlGlob = new Bun.Glob("*.html");
 	const files: string[] = [];
 	for await (const file of htmlGlob.scan(E2E_DIR)) {

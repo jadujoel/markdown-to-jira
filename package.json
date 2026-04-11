@@ -21,6 +21,6 @@
   "type": "module",
   "private": true,
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^6"
   }
 }
