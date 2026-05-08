@@ -131,3 +131,9 @@ dist
 
 .DS_Store
 test
+
+# Local Claude settings
+.claude/*.local.json
+
+# Compiled CLI binary
+md2jira

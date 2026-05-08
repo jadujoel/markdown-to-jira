@@ -10,6 +10,9 @@
     "highlight.js": "11.9.0",
     "marked": "9.1.0"
   },
+  "scripts": {
+    "build:cli": "bun build --compile cli.ts --outfile md2jira"
+  },
   "module": "src/index.ts",
   "type": "module",
   "private": true,

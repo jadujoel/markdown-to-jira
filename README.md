@@ -27,6 +27,54 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 
 Or visit the [official Bun installation guide](https://bun.sh/docs/installation) for more options.
 
+## CLI Tool
+
+A standalone `md2jira` command-line tool is available that converts markdown from stdin to JIRA wiki markup on stdout. No runtime dependencies required — it's a single compiled binary.
+
+### Quick Setup
+
+```bash
+./setup.sh
+```
+
+This builds the binary, installs it to `~/.local/bin/md2jira`, and installs the Claude Code `/md2jira` skill.
+
+### Usage
+
+```bash
+echo '# Hello **world**' | md2jira
+```
+
+```bash
+md2jira <<'EOF'
+## My Heading
+
+- bullet one
+- bullet two
+
+```python
+print("hello")
+```
+EOF
+```
+
+### Manual Build
+
+```bash
+bun install
+bun run build:cli
+```
+
+This produces a `md2jira` binary in the project root. Copy it anywhere on your PATH:
+
+```bash
+cp md2jira ~/.local/bin/
+```
+
+### Claude Code Skill
+
+The repo includes a `/md2jira` skill for [Claude Code](https://claude.com/claude-code). After running `./setup.sh`, you can use `/md2jira` in any Claude Code session to convert markdown to JIRA markup.
+
 ## Development
 
 Install dependencies:
