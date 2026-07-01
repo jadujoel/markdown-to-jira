@@ -1,10 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { Parser } from "marked";
+import { Parser, type Tokens } from "marked";
 import {
 	convert,
 	correctMarkdown,
 	fixCommentedCodeBlocks,
-	fixDoubleUnderscore,
 	html,
 	JiraRenderer,
 	verbose,
@@ -183,7 +182,7 @@ describe("code blocks", () => {
 	});
 	it("collapse for long code blocks", () => {
 		const lines = Array.from({ length: 25 }, (_, i) => `line ${i}`).join("\n");
-		const result = c("```\n" + lines + "\n```");
+		const result = c(`\`\`\`\n${lines}\n\`\`\``);
 		expect(result).toContain("collapse=true");
 	});
 	it("no collapse for short code blocks", () => {
@@ -647,25 +646,31 @@ describe("fixCommentedCodeBlocks", () => {
 describe("JiraRenderer direct method calls", () => {
 	it("tablerow appends newline", () => {
 		const renderer = new JiraRenderer();
-		const result = renderer.tablerow({ text: "||A||B" } as any);
+		const result = renderer.tablerow({
+			text: "||A||B",
+		} satisfies Tokens.TableRow);
 		expect(result).toEqual("||A||B\n");
 	});
 	it("tablecell formats header cell", () => {
 		const renderer = new JiraRenderer();
-		new Parser({ renderer } as any);
+		new Parser({ renderer });
 		const result = renderer.tablecell({
+			text: "Head",
 			header: true,
+			align: null,
 			tokens: [{ type: "text", raw: "Head", text: "Head" }],
-		} as any);
+		} satisfies Tokens.TableCell);
 		expect(result).toEqual("||Head");
 	});
 	it("tablecell formats data cell", () => {
 		const renderer = new JiraRenderer();
-		new Parser({ renderer } as any);
+		new Parser({ renderer });
 		const result = renderer.tablecell({
+			text: "Data",
 			header: false,
+			align: null,
 			tokens: [{ type: "text", raw: "Data", text: "Data" }],
-		} as any);
+		} satisfies Tokens.TableCell);
 		expect(result).toEqual("|Data");
 	});
 });
@@ -784,7 +789,10 @@ describe("convert with error correction", () => {
 // ─── Complex fixture tests ──────────────────────────────────────────
 
 describe("complex-document.md fixture", () => {
-	const md = require("fs").readFileSync("test/complex-document.md", "utf8");
+	const md = require("node:fs").readFileSync(
+		"test/complex-document.md",
+		"utf8",
+	);
 
 	it("does not throw", () => {
 		expect(() => convert(md)).not.toThrow();
@@ -820,7 +828,7 @@ describe("complex-document.md fixture", () => {
 });
 
 describe("complex-release-notes.md fixture", () => {
-	const md = require("fs").readFileSync(
+	const md = require("node:fs").readFileSync(
 		"test/complex-release-notes.md",
 		"utf8",
 	);
@@ -846,7 +854,7 @@ describe("complex-release-notes.md fixture", () => {
 });
 
 describe("error-laden.md fixture", () => {
-	const md = require("fs").readFileSync("test/error-laden.md", "utf8");
+	const md = require("node:fs").readFileSync("test/error-laden.md", "utf8");
 
 	it("does not throw without correction", () => {
 		expect(() => convert(md)).not.toThrow();
@@ -878,7 +886,10 @@ describe("error-laden.md fixture", () => {
 });
 
 describe("missing-newlines.md fixture", () => {
-	const md = require("fs").readFileSync("test/missing-newlines.md", "utf8");
+	const md = require("node:fs").readFileSync(
+		"test/missing-newlines.md",
+		"utf8",
+	);
 
 	it("does not throw without correction", () => {
 		expect(() => convert(md)).not.toThrow();

@@ -88,7 +88,7 @@ export class JiraRenderer extends Renderer {
 	paragraph({ tokens }: Tokens.Paragraph): string {
 		const body = this.parser.parseInline(tokens);
 		dbg(`Paragraph`, body);
-		return body + "\n\n";
+		return `${body}\n\n`;
 	}
 	html({ text }: Tokens.HTML): string {
 		dbg(`HTML: ${text}`);
@@ -124,7 +124,10 @@ export class JiraRenderer extends Renderer {
 			.replaceAll("}", "\\}")
 			.replaceAll("[", "\\[")
 			.replaceAll("]", "\\]")
-			.replaceAll("|", "\\|");
+			.replaceAll("|", "\\|")
+			.replaceAll("-", "\\-")
+			.replaceAll("*", "\\*")
+			.replaceAll("_", "\\_");
 		// Jira only recognises \ as escape before { } [ ] |
 		// A trailing \ would escape the first } of }}, breaking monospace.
 		// Insert a zero-width space to separate them.
@@ -157,7 +160,7 @@ export class JiraRenderer extends Renderer {
 		}
 		this._listDepth.pop();
 		// Only add trailing newline for top-level lists
-		return this._listDepth.length === 0 ? body + "\n" : body;
+		return this._listDepth.length === 0 ? `${body}\n` : body;
 	}
 	listitem(item: Tokens.ListItem): string {
 		const prefix = this._listDepth.join("");
@@ -165,10 +168,10 @@ export class JiraRenderer extends Renderer {
 		// Render tokens, separating nested lists and block-level elements from inline content
 		for (const token of item.tokens) {
 			if (token.type === "list") {
-				itemText = itemText.trimEnd() + "\n" + this.parser.parse([token]);
+				itemText = `${itemText.trimEnd()}\n${this.parser.parse([token])}`;
 			} else if (token.type === "code" || token.type === "blockquote") {
 				// Block-level tokens need to be separated from preceding text
-				itemText = itemText.trimEnd() + "\n" + this.parser.parse([token]);
+				itemText = `${itemText.trimEnd()}\n${this.parser.parse([token])}`;
 			} else {
 				itemText += this.parser.parse([token]);
 			}
@@ -183,21 +186,21 @@ export class JiraRenderer extends Renderer {
 		// header
 		let headerRow = "";
 		for (const cell of token.header) {
-			headerRow += "||" + this.parser.parseInline(cell.tokens);
+			headerRow += `||${this.parser.parseInline(cell.tokens)}`;
 		}
-		result += headerRow + "||\n";
+		result += `${headerRow}||\n`;
 		// rows
 		for (const row of token.rows) {
 			let rowStr = "";
 			for (const cell of row) {
-				rowStr += "|" + this.parser.parseInline(cell.tokens);
+				rowStr += `|${this.parser.parseInline(cell.tokens)}`;
 			}
-			result += rowStr + "|\n";
+			result += `${rowStr}|\n`;
 		}
-		return result + "\n";
+		return `${result}\n`;
 	}
 	tablerow({ text }: Tokens.TableRow): string {
-		return text + "\n";
+		return `${text}\n`;
 	}
 	tablecell({ header, tokens }: Tokens.TableCell): string {
 		const type = header ? "||" : "|";

@@ -717,7 +717,7 @@ e2e("e2e: markdown → jira comment → rendered HTML", () => {
 	it("code block with long content collapses", async () => {
 		currentTestName = "long code block collapses";
 		const lines = Array.from({ length: 25 }, (_, i) => `line ${i + 1}`);
-		const md = "```\n" + lines.join("\n") + "\n```";
+		const md = `\`\`\`\n${lines.join("\n")}\n\`\`\``;
 		const html = await render(md);
 		expect(html).toMatch(/<pre[^>]*>/);
 		expect(html).toMatch(/line 1/);

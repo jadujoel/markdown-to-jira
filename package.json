@@ -1,26 +1,26 @@
 {
-  "name": "markdown-to-jira",
-  "version": "0.0.2",
-  "description": "convert markdown to jira text",
-  "author": "joel.lof@icloud.com",
-  "license": "MIT",
-  "devDependencies": {
-    "marked": "17.0.5",
-    "bun-types": "1.2.11",
-    "highlight.js": "11.9.0"
-  },
-  "scripts": {
-    "test": "bun test src/convert.test.ts",
-    "test:e2e": "bun test --timeout 30000 src/convert.e2e.test.ts"
-  },
-  "dependencies": {},
-  "optionalDependencies": {
-    "@biomejs/biome": "2.4.8"
-  },
-  "module": "src/index.ts",
-  "type": "module",
-  "private": true,
-  "peerDependencies": {
-    "typescript": "^6"
-  }
+	"name": "markdown-to-jira",
+	"version": "0.0.2",
+	"description": "convert markdown to jira text",
+	"author": "joel.lof@icloud.com",
+	"license": "MIT",
+	"devDependencies": {
+		"marked": "17.0.5",
+		"bun-types": "1.2.11",
+		"highlight.js": "11.9.0"
+	},
+	"scripts": {
+		"test": "bun test src/convert.test.ts",
+		"test:e2e": "bun test --timeout 30000 src/convert.e2e.test.ts"
+	},
+	"dependencies": {},
+	"optionalDependencies": {
+		"@biomejs/biome": "2.4.8"
+	},
+	"module": "src/index.ts",
+	"type": "module",
+	"private": true,
+	"peerDependencies": {
+		"typescript": "^6"
+	}
 }
