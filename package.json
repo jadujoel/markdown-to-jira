@@ -11,7 +11,8 @@
 	},
 	"scripts": {
 		"test": "bun test src/convert.test.ts",
-		"test:e2e": "bun test --timeout 30000 src/convert.e2e.test.ts"
+		"test:e2e": "bun test --timeout 30000 src/convert.e2e.test.ts",
+		"test:e2e:dc": "bun test --timeout 30000 src/convert.dc.e2e.test.ts"
 	},
 	"dependencies": {},
 	"optionalDependencies": {
