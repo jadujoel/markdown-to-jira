@@ -594,6 +594,35 @@ describe("raw HTML passthrough", () => {
 	});
 });
 
+// ─── HTML text-style tags (GFM) ─────────────────────────────────────
+
+describe("HTML text-style tags", () => {
+	it("subscript", () => {
+		expect(c("a <sub>subscript</sub> text")).toEqual("a ~subscript~ text");
+	});
+	it("superscript", () => {
+		expect(c("a <sup>superscript</sup> text")).toEqual("a ^superscript^ text");
+	});
+	it("underline (ins)", () => {
+		expect(c("an <ins>underline</ins> text")).toEqual("an +underline+ text");
+	});
+	it("tags are case-insensitive", () => {
+		expect(c("x <SUP>2</SUP>")).toEqual("x ^2^");
+	});
+	it("nested markdown inside tag", () => {
+		expect(c("<ins>**bold**</ins> end")).toEqual("+*bold*+ end");
+	});
+	it("tag at start of a block", () => {
+		expect(c("<sub>low</sub> text")).toEqual("~low~ text");
+	});
+	it("tag inside a list item", () => {
+		expect(c("- H<sub>2</sub>O")).toEqual("* H~2~O");
+	});
+	it("inline code keeps the literal tag", () => {
+		expect(c("`<sub>x</sub>`")).toEqual("{{<sub>x</sub>}}");
+	});
+});
+
 // ─── html() export (HTML rendering) ────────────────────────────────
 
 describe("html() export", () => {
