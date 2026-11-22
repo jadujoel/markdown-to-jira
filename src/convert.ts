@@ -7,6 +7,13 @@ export function verbose() {
 }
 
 export const MAX_CODE_LINE = 20 as const;
+
+/** Jira wiki markup markers for the HTML text-style tags that GFM allows. */
+const HTML_TAG_MARKERS: Record<string, string> = {
+	sub: "~",
+	sup: "^",
+	ins: "+",
+};
 export const LANGS = {
 	// Shell variants
 	shell: "bash",
@@ -92,7 +99,12 @@ export class JiraRenderer extends Renderer {
 	}
 	html({ text }: Tokens.HTML): string {
 		dbg(`HTML: ${text}`);
-		return text;
+		// GitHub-flavored Markdown styles text with these HTML tags.
+		// Jira wiki markup has its own markers for them.
+		return text.replace(
+			/<\/?(sub|sup|ins)\s*>/gi,
+			(_, tag: string) => HTML_TAG_MARKERS[tag.toLowerCase()] ?? "",
+		);
 	}
 	heading({ tokens, depth }: Tokens.Heading): string {
 		const body = this.parser.parseInline(tokens);
