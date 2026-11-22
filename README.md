@@ -151,6 +151,19 @@ bun test:e2e
 
 If the environment variables are not set, the E2E suite is skipped automatically — unit tests still run normally.
 
+### Jira Data Center E2E Test
+
+The Jira Data Center regression suite separately verifies wiki-markup behavior
+that differs from Jira Cloud, including ordered-list continuation across loose
+list items. It is skipped unless its DC-specific credentials are configured.
+
+```bash
+JIRA_BASE_URL=https://jira.example.com \
+JIRA_PAT=your-personal-access-token \
+JIRA_DC_PROJECT_KEY=KAN \
+bun test:e2e:dc
+```
+
 **Covered scenarios:**
 
 | Markdown | Assertion |

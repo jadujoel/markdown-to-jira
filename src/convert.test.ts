@@ -228,6 +228,15 @@ describe("ordered lists", () => {
 	it("nested", () => {
 		expect(c("1. a\n   1. b\n   2. c\n2. d")).toEqual("# a\n## b\n## c\n# d");
 	});
+	it("loose item continuation does not break list numbering", () => {
+		const md =
+			"1. Step one\n   * sub bullet\n\n   Continuation sentence.\n2. Step two";
+		const result = c(md);
+		expect(result).toEqual(
+			"# Step one\n#* sub bullet\nContinuation sentence.\n# Step two",
+		);
+		expect(result).not.toMatch(/\S\n\n\S/);
+	});
 });
 
 describe("mixed list types", () => {

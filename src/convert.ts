@@ -172,6 +172,13 @@ export class JiraRenderer extends Renderer {
 			} else if (token.type === "code" || token.type === "blockquote") {
 				// Block-level tokens need to be separated from preceding text
 				itemText = `${itemText.trimEnd()}\n${this.parser.parse([token])}`;
+			} else if (token.type === "paragraph") {
+				// Loose list items use paragraph tokens. Render their inline content
+				// directly so paragraph() does not insert a list-breaking blank line.
+				const body = this.parser.parseInline(
+					(token as Tokens.Paragraph).tokens,
+				);
+				itemText = itemText.length ? `${itemText.trimEnd()}\n${body}` : body;
 			} else {
 				itemText += this.parser.parse([token]);
 			}
